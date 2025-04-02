@@ -1,0 +1,11 @@
+# Python関連
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# データベース関連
+test.db
+
+# 環境設定
+.env
