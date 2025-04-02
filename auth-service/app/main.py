@@ -20,6 +20,7 @@ async def func():
         # ユーザー取得
         found_user = await user.get_by_username(db, username="testuser")
         print(f"Found user: {found_user.username}")
+        print(f"User ID: {found_user.id}")
 
 if __name__ == "__main__":
     import asyncio

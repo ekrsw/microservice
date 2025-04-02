@@ -19,7 +19,7 @@ class UserUpdate(UserBase):
 
 # レスポンスとして返すユーザー情報
 class UserInDBBase(UserBase):
-    id: Optional[int] = None
+    id: Optional[str] = None
 
     class Config:
         from_attributes = True
