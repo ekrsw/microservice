@@ -1,16 +1,17 @@
 from typing import Optional
 from sqlalchemy.dialects.postgresql import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field, validator
 
 
 # 共通のプロパティを持つUserBaseクラス
 class UserBase(BaseModel):
     username: Optional[str] = None
 
+
 # 新規ユーザー作成時に必要なプロパティ
 class UserCreate(UserBase):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=16)
 
 
 # ユーザー更新時に使うプロパティ
