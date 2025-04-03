@@ -1,7 +1,6 @@
 import pytest
 from app.core.security import verify_password
 from app.crud.user import user
-from app.models.user import User
 from app.schemas.user import UserCreate
 
 

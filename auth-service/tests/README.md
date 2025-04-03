@@ -1,4 +1,4 @@
 ### テストコマンド
 ```
-pytest tests/models/test_user.py -v
+pytest tests/crud/test_user.py -v
 ```
