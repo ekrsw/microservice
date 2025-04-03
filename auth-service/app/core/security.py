@@ -7,3 +7,9 @@ async def get_password_hash(password: str) -> str:
 
 async def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+async def create_access_token():
+    pass
+
+async def create_refresh_token():
+    pass

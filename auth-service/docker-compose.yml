@@ -14,6 +14,19 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      
+  test_db:
+    image: postgres:17.4-alpine
+    container_name: auth-test-db
+    restart: "no"
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${TEST_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${TEST_POSTGRES_DB}
+      TZ: ${TIME_ZONE}
+      PGTZ: ${TIME_ZONE}
+    ports:
+      - "${TEST_POSTGRES_PORT}:5432"
+
 volumes:
   postgres_data:

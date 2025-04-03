@@ -27,3 +27,25 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
+
+# テスト用の非同期エンジンとセッションファクトリーの作成
+test_async_engine = create_async_engine(
+    settings.TEST_DATABASE_URL,
+    echo=True,
+    future=True
+)
+TestAsyncSessionLocal = sessionmaker(
+    test_async_engine,
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
+
+# テスト用DBセッションを取得するための依存関係
+async def get_test_db() -> AsyncSession:
+    async with TestAsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

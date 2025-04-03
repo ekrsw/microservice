@@ -22,9 +22,10 @@ class UserUpdate(UserBase):
 class UserInDBBase(UserBase):
     id: Optional[UUID] = None
 
-    class Config:
-        from_attributes = True
-        arbitrary_types_allowed = True
+    model_config = {
+        "from_attributes": True,
+        "arbitrary_types_allowed": True
+    }
 
 
 # APIレスポンスで使用するユーザースキーマ

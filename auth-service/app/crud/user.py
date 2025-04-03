@@ -1,5 +1,6 @@
 from typing import Optional
 from uuid import UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.user import User
@@ -19,7 +20,7 @@ class CRUDUser:
         await db.refresh(db_obj)
         return db_obj
 
-    async def get_by_id(self, db: AsyncSession, id: int) -> Optional[User]:
+    async def get_by_id(self, db: AsyncSession, id: UUID) -> Optional[User]:
         result = await db.execute(select(User).filter(User.id == id))
         return result.scalar_one_or_none()
 
