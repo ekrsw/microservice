@@ -1,14 +1,15 @@
 from app.crud.user import user
-from app.db.session import AsyncSessionLocal, async_engine
+from app.db.session import async_engine
 from app.schemas.user import UserCreate
 from app.db.base import Base
+from app.db.session import get_db
 
 async def func():
     # データベースのテーブルを作成
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    async with AsyncSessionLocal() as db:
+    async for db in get_db():
         # ユーザー作成
         user_in = UserCreate(
             username="testuser",
