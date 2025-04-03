@@ -38,6 +38,8 @@ async def db_session():
         finally:
             # テスト後にデータをクリアする（同じセッション内で）
             try:
+                await session.rollback()  # 保留中のトランザクションをロールバック
+                # テーブルのデータをクリア
                 for table in reversed(Base.metadata.sorted_tables):
                     await session.execute(table.delete())
                 await session.commit()

@@ -1,5 +1,7 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_scoped_session
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+import asyncio
 
 from app.core.config import settings
 
@@ -32,7 +34,8 @@ async def get_db() -> AsyncSession:
 test_async_engine = create_async_engine(
     settings.TEST_DATABASE_URL,
     echo=True,
-    future=True
+    future=True,
+    poolclass=NullPool,  # コネクションプールを無効化
 )
 TestAsyncSessionLocal = sessionmaker(
     test_async_engine,

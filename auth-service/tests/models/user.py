@@ -6,10 +6,10 @@ from app.schemas.user import UserCreate
 
 
 @pytest.mark.asyncio
-async def test_create_user(db_session):
+async def test_create_user(db_session, unique_username):
     # db_sessionがテスト用DBへの接続を提供
     user_in = UserCreate(
-        username="testuser",
+        username=unique_username,
         password="password123"
     )
     
@@ -18,12 +18,12 @@ async def test_create_user(db_session):
     
     # 基本的な検証
     assert db_user.id is not None
-    assert db_user.username == "testuser"
+    assert db_user.username == unique_username
 
     # DBから取得して検証
     result = await user.get_by_id(db_session, db_user.id)
     assert result is not None
-    assert result.username == "testuser"
+    assert result.username == unique_username
 
     # パスワードの検証
     assert result.hashed_password != "password123"
@@ -40,10 +40,10 @@ async def test_create_user(db_session):
 
 # Read操作テスト
 @pytest.mark.asyncio
-async def test_get_user_by_id_exists(db_session):
+async def test_get_user_by_id_exists(db_session, unique_username):
     # ユーザーを作成
     user_in = UserCreate(
-        username="testuser",
+        username=unique_username,
         password="password123"
     )
     db_user = await user.create(db_session, user_in)
@@ -52,4 +52,4 @@ async def test_get_user_by_id_exists(db_session):
     found_user = await user.get_by_id(db_session, db_user.id)
     assert found_user is not None
     assert found_user.id == db_user.id
-    assert found_user.username == "testuser"
+    assert found_user.username == unique_username
