@@ -53,3 +53,29 @@ async def test_get_user_by_id_exists(db_session, unique_username):
     assert found_user is not None
     assert found_user.id == db_user.id
     assert found_user.username == unique_username
+
+    # ユーザーの削除
+    await db_session.delete(found_user)
+    await db_session.commit()
+    # DBから削除されたことを確認
+    found_user = await user.get_by_id(db_session, db_user.id)
+    assert found_user is None
+
+@pytest.mark.asyncio
+async def test_get_user_by_username_exists(db_session):
+    # ユーザー作成
+    user_in = UserCreate(username="findme", password="password123")
+    await user.create(db_session, user_in)
+    
+    # ユーザー名で検索
+    found_user = await user.get_by_username(db_session, "findme")
+    assert found_user is not None
+    assert found_user.username == "findme"
+
+    # ユーザーの削除
+    await db_session.delete(found_user)
+    await db_session.commit()
+    # DBから削除されたことを確認
+    found_user = await user.get_by_username(db_session, "findme")
+    assert found_user is None
+    
