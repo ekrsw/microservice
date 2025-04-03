@@ -3,8 +3,6 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
-# 非同期データベース接続URLの作成
-# SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 
 # 非同期エンジンの作成
 async_engine = create_async_engine(

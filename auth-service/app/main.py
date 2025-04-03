@@ -12,14 +12,14 @@ async def func():
     async for db in get_db():
         # ユーザー作成
         user_in = UserCreate(
-            username="testuser",
+            username="testuser2",
             password="testpassword"
         )
         db_user = await user.create(db, obj_in=user_in)
         print(f"Created user: {db_user.username}")
 
         # ユーザー取得
-        found_user = await user.get_by_username(db, username="testuser")
+        found_user = await user.get_by_username(db, username="testuser2")
         print(f"Found user: {found_user.username}")
         print(f"User ID: {found_user.id}")
 

@@ -1,4 +1,5 @@
 from typing import Optional
+from sqlalchemy.dialects.postgresql import UUID
 from pydantic import BaseModel, EmailStr
 
 
@@ -19,10 +20,11 @@ class UserUpdate(UserBase):
 
 # レスポンスとして返すユーザー情報
 class UserInDBBase(UserBase):
-    id: Optional[str] = None
+    id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True
 
 
 # APIレスポンスで使用するユーザースキーマ
