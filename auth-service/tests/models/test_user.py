@@ -72,10 +72,14 @@ async def test_get_user_by_username_exists(db_session):
     assert found_user is not None
     assert found_user.username == "findme"
 
+    # ユーザー名が存在しない場合
+    not_exist_user = await user.get_by_username(db_session, "nonexistent")
+    assert not_exist_user is None
+
     # ユーザーの削除
     await db_session.delete(found_user)
     await db_session.commit()
     # DBから削除されたことを確認
     found_user = await user.get_by_username(db_session, "findme")
     assert found_user is None
-    
+
