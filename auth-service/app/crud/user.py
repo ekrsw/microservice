@@ -43,7 +43,12 @@ class CRUDUser:
             raise
 
     async def delete(self, db: AsyncSession, db_obj: User) -> None:
-        await db.delete(db_obj)
+        # Check if the user exists in the database
+        existing_user = await self.get_by_id(db, db_obj.id)
+        if not existing_user:
+            raise ValueError("User not found")
+        
+        await db.delete(existing_user)
         await db.commit()
 
 user = CRUDUser()

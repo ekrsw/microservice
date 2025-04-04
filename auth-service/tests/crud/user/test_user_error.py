@@ -350,3 +350,36 @@ async def test_update_nonexistent_user(db_session):
     # データベースに影響がないことを確認
     result = await user.get_by_username(db_session, "newname")
     assert result is None
+
+# Delete操作テスト
+@pytest.mark.asyncio
+async def test_delete_nonexistent_user(db_session):
+    # 存在しないユーザーを表すダミーユーザーオブジェクトを作成
+    nonexistent_user = User(
+        id=uuid.uuid4(),
+        username="nonexistent",
+        hashed_password="dummy"
+    )
+    
+    # データベースの初期状態を記録
+    users = await db_session.execute(select(User))
+    initial_users = users.scalars().all()
+    initial_count = len(initial_users)
+    
+    # 存在しないユーザーの削除を試みる
+    with pytest.raises(Exception) as exc_info:  # 具体的な例外型はSQLAlchemyの実装に依存
+        await user.delete(db_session, nonexistent_user)
+    
+    # エラーメッセージを確認
+    error_message = str(exc_info.value)
+    assert "not found" in error_message.lower() or "no row was found" in error_message.lower()
+    
+    # データベースの状態が変更されていないことを確認
+    users = await db_session.execute(select(User))
+    current_users = users.scalars().all()
+    assert len(current_users) == initial_count
+    
+    # 各ユーザーが維持されていることを確認
+    for initial_user, current_user in zip(initial_users, current_users):
+        assert initial_user.id == current_user.id
+        assert initial_user.username == current_user.username
