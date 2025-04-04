@@ -5,5 +5,5 @@ set -e
 HOST=${AUTH_HOST:-"0.0.0.0"}
 PORT=${AUTH_PORT:-"8000"}
 
-# ユーザーappuserとして実行
-exec su -s /bin/bash appuser -c "uvicorn app.main:app --host $HOST --port $PORT --workers 2"
+# 直接uvicornを実行
+exec uvicorn app.main:app --host $HOST --port $PORT --workers 2
