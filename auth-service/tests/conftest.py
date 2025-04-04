@@ -1,11 +1,34 @@
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
 import pytest
 import pytest_asyncio
 import uuid
+import asyncio
+from fastapi import FastAPI
+from asgi_lifespan import LifespanManager
+from httpx import ASGITransport
 
 from app.db.base import Base
 from app.db.session import test_async_engine, TestAsyncSessionLocal
 from app.crud.user import user
+from app.main import app
 from app.schemas.user import UserCreate
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """イベントループを提供する"""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture
+async def async_client(event_loop):
+    """非同期テストクライアントを提供する"""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
 
 
 @pytest.fixture
