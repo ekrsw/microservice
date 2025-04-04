@@ -1,11 +1,12 @@
 # 異常系テスト
 import pytest
 from pydantic import ValidationError
+from uuid import UUID
 from app.core.security import verify_password
 from app.crud.user import user
 from app.schemas.user import UserCreate, UserUpdate
 from app.models.user import User
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, StatementError
 from sqlalchemy import select
 
 
@@ -135,3 +136,18 @@ async def test_create_duplicate_username(db_session):
     # DBから削除されたことを確認
     result = await user.get_by_username(db_session, username)
     assert result is None
+
+# Read操作テスト
+@pytest.mark.asyncio
+async def test_get_user_by_invalid_id(db_session):
+    # 無効なUUID形式の文字列
+    invalid_id = "not-a-uuid"
+    
+    # 無効なUUIDでユーザーを取得しようとする
+    with pytest.raises(StatementError) as exc_info:
+        # 無効なUUID文字列を直接クエリに渡す
+        await user.get_by_id(db_session, invalid_id)
+    
+    # エラーメッセージを検証
+    error_message = str(exc_info.value)
+    assert "invalid uuid" in error_message.lower()
