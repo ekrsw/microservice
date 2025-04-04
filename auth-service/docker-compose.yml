@@ -15,9 +15,9 @@ services:
       test_db:
         condition: service_healthy
     ports:
-      - "${AUTH_PORT}:8000"
+      - "${API_PORT}:${AUTH_SERVICE_PORT}"
     expose:
-      - "8000"
+      - "${AUTH_SERVICE_PORT}"
     volumes:
       - ./app:/workdir/app
       # - ../migrations:/migrations
