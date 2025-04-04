@@ -1,6 +1,6 @@
 from typing import Optional
-from sqlalchemy.dialects.postgresql import UUID
 from pydantic import BaseModel, Field, validator
+from uuid import UUID
 
 
 # 共通のプロパティを持つUserBaseクラス

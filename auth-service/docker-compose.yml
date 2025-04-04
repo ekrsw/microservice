@@ -15,12 +15,13 @@ services:
       test_db:
         condition: service_healthy
     ports:
-      - "${API_PORT}:${AUTH_SERVICE_PORT}"
+      - "${AUTH_SERVICE_PORT}:${API_PORT}"
     expose:
-      - "${AUTH_SERVICE_PORT}"
+      - "${API_PORT}"
     volumes:
       - ./app:/workdir/app
-      # - ../migrations:/migrations
+      - ./migrations:/workdir/migrations
+      - ./alembic.ini:/workdir/alembic.ini
     networks:
       - auth_network
     deploy:

@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.crud import user
+from app.crud.user import user
 from app.db.session import get_db
 from app.schemas.user import UserCreate, User as UserResponse
 
@@ -20,7 +20,7 @@ async def register_user(
     ユーザーを登録するエンドポイント
     """
     # ユーザー名の重複チェック
-    existing_user = await user.get_user_by_username(db, username=user_in.username)
+    existing_user = await user.get_by_username(db, username=user_in.username)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
