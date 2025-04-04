@@ -8,12 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 依存関係のインストール
-COPY ./backend/requirements.txt .
+COPY ./requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # アプリケーションコードのコピー
-COPY ./backend /workdir
+COPY ./app /workdir/app
 
 # 非rootユーザーを作成して実行（セキュリティ向上）
 RUN adduser --disabled-password --gecos "" appuser && \
@@ -23,6 +23,8 @@ RUN adduser --disabled-password --gecos "" appuser && \
 
 # Uvicornでアプリケーションを起動（ワーカー数を制限）
 # 環境変数からホストとポートを取得するようにエントリポイントスクリプトを使用
-COPY ./backend/docker/fastapi/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["scripts/entrypoint.sh"]
+COPY ./docker/scripts /workdir/scripts
+RUN chmod +x ./scripts/entrypoint.sh
+
+USER appuser
+ENTRYPOINT ["./scripts/entrypoint.sh"]
