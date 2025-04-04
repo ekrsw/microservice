@@ -1,7 +1,7 @@
 # 異常系テスト
 import pytest
 from pydantic import ValidationError
-from uuid import UUID
+import uuid
 from app.core.security import verify_password
 from app.crud.user import user
 from app.schemas.user import UserCreate, UserUpdate
@@ -151,3 +151,128 @@ async def test_get_user_by_invalid_id(db_session):
     # エラーメッセージを検証
     error_message = str(exc_info.value)
     assert "invalid uuid" in error_message.lower()
+
+@pytest.mark.asyncio
+async def test_get_user_by_nonexistent_id(db_session):
+    # 存在しないが有効なUUID形式のIDを生成
+    nonexistent_id = uuid.uuid4()
+    
+    # 存在しないIDでユーザーを取得
+    result = await user.get_by_id(db_session, nonexistent_id)
+    
+    # 結果がNoneであることを確認
+    assert result is None
+
+    # データベースに影響がないことを確認
+    users = await db_session.execute(select(User))
+    users_list = users.scalars().all()
+    initial_count = len(users_list)
+    
+    # 再度同じIDで取得を試みる
+    result = await user.get_by_id(db_session, nonexistent_id)
+    assert result is None
+    
+    # データベースのユーザー数が変わっていないことを確認
+    users = await db_session.execute(select(User))
+    users_list = users.scalars().all()
+    assert len(users_list) == initial_count
+
+@pytest.mark.asyncio
+async def test_get_user_by_nonexistent_username(db_session):
+    # 存在しないユーザー名
+    nonexistent_username = "nonexistentuser123"
+    
+    # 存在しないユーザー名でユーザーを取得
+    result = await user.get_by_username(db_session, nonexistent_username)
+    
+    # 結果がNoneであることを確認
+    assert result is None
+
+    # データベースに影響がないことを確認
+    users = await db_session.execute(select(User))
+    users_list = users.scalars().all()
+    initial_count = len(users_list)
+    
+    # 再度同じユーザー名で取得を試みる
+    result = await user.get_by_username(db_session, nonexistent_username)
+    assert result is None
+    
+    # データベースのユーザー数が変わっていないことを確認
+    users = await db_session.execute(select(User))
+    users_list = users.scalars().all()
+    assert len(users_list) == initial_count
+
+    # 特殊文字を含むユーザー名でも試してみる
+    special_username = "user@123!#$"
+    result = await user.get_by_username(db_session, special_username)
+    assert result is None
+
+# Update操作テスト
+# バリデーションエラー
+@pytest.mark.asyncio
+async def test_update_user_with_too_long_username(db_session):
+    # 既存のユーザーを作成
+    user_in = UserCreate(
+        username="originaluser",
+        password="password123"
+    )
+    db_user = await user.create(db_session, user_in)
+    
+    # 51文字のユーザー名を生成（最大制限は50文字）
+    too_long_username = "a" * 51
+    
+    # 長すぎるユーザー名でUserUpdateスキーマを作成しようとする
+    with pytest.raises(ValidationError) as exc_info:
+        user_update = UserUpdate(username=too_long_username)
+    
+    # エラーの詳細を検証
+    error = exc_info.value.errors()
+    assert len(error) == 1
+    assert error[0]["type"] == "string_too_long"
+    assert error[0]["loc"] == ("username",)
+    assert error[0]["ctx"]["max_length"] == 50
+
+    # データベースのユーザー名が変更されていないことを確認
+    db_user_check = await user.get_by_id(db_session, db_user.id)
+    assert db_user_check.username == "originaluser"
+
+    # テストデータのクリーンアップ
+    await db_session.delete(db_user)
+    await db_session.commit()
+    # DBから削除されたことを確認
+    result = await user.get_by_id(db_session, db_user.id)
+    assert result is None
+
+@pytest.mark.asyncio
+async def test_update_user_with_too_long_password(db_session):
+    # 既存のユーザーを作成
+    user_in = UserCreate(
+        username="testuser",
+        password="originalpass123"
+    )
+    db_user = await user.create(db_session, user_in)
+    
+    # 17文字のパスワードを生成（最大制限は16文字）
+    too_long_password = "a" * 17
+    
+    # 長すぎるパスワードでUserUpdateスキーマを作成しようとする
+    with pytest.raises(ValidationError) as exc_info:
+        user_update = UserUpdate(password=too_long_password)
+    
+    # エラーの詳細を検証
+    error = exc_info.value.errors()
+    assert len(error) == 1
+    assert error[0]["type"] == "string_too_long"
+    assert error[0]["loc"] == ("password",)
+    assert error[0]["ctx"]["max_length"] == 16
+
+    # データベースのパスワードが変更されていないことを確認
+    db_user_check = await user.get_by_id(db_session, db_user.id)
+    assert await verify_password("originalpass123", db_user_check.hashed_password)
+
+    # テストデータのクリーンアップ
+    await db_session.delete(db_user)
+    await db_session.commit()
+    # DBから削除されたことを確認
+    result = await user.get_by_id(db_session, db_user.id)
+    assert result is None
