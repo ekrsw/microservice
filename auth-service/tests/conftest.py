@@ -9,7 +9,7 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport
 
 from app.db.base import Base
-from app.db.session import test_async_engine, TestAsyncSessionLocal
+from app.db.session import test_async_engine, TestAsyncSessionLocal, get_db, get_test_db
 from app.crud.user import user
 from app.main import app
 from app.schemas.user import UserCreate
@@ -26,9 +26,15 @@ def event_loop():
 @pytest_asyncio.fixture
 async def async_client(event_loop):
     """非同期テストクライアントを提供する"""
+    # テスト用DBを使用するように依存関係をオーバーライド
+    app.dependency_overrides[get_db] = get_test_db
+    
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+    
+    # テスト後に依存関係をリセット
+    app.dependency_overrides = {}
 
 
 @pytest.fixture
