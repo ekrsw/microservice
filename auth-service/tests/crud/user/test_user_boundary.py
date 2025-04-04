@@ -1,8 +1,8 @@
-"""ユーザー名の最小/最大長
-パスワードの複雑さの境界
-特殊文字を含むユーザー名
-Unicode文字を含む入力"""
-
+# 境界値テスト
+# ユーザー名とパスワードの長さに関する境界値テストを行う
+# ユーザー名は1文字以上50文字以下
+# パスワードは1文字以上16文字以下
+# ユーザー名に特殊文字やUnicode文字を含む場合のテストも含む
 import pytest
 from app.crud.user import user
 from app.schemas.user import UserCreate

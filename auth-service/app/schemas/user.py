@@ -22,7 +22,8 @@ class UserUpdate(UserBase):
 
 # レスポンスとして返すユーザー情報
 class UserInDBBase(UserBase):
-    id: Optional[UUID] = None
+    id: UUID
+    username: str
 
     model_config = {
         "from_attributes": True,
