@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash
@@ -29,13 +30,17 @@ class CRUDUser:
         return result.scalar_one_or_none()
 
     async def update(self, db: AsyncSession, db_obj: User, obj_in: UserUpdate) -> User:
-        if obj_in.username is not None:
-            db_obj.username = obj_in.username
-        if obj_in.password is not None:
-            db_obj.hashed_password = await get_password_hash(obj_in.password)
-        await db.commit()
-        await db.refresh(db_obj)
-        return db_obj
+        try:
+            if obj_in.username is not None:
+                db_obj.username = obj_in.username
+            if obj_in.password is not None:
+                db_obj.hashed_password = await get_password_hash(obj_in.password)
+            await db.commit()
+            await db.refresh(db_obj)
+            return db_obj
+        except IntegrityError:
+            await db.rollback()
+            raise
 
     async def delete(self, db: AsyncSession, db_obj: User) -> None:
         await db.delete(db_obj)

@@ -16,7 +16,8 @@ class UserCreate(UserBase):
 
 # ユーザー更新時に使うプロパティ
 class UserUpdate(UserBase):
-    password: Optional[str] = None
+    username: Optional[str] = Field(None, max_length=50)
+    password: Optional[str] = Field(None, max_length=16)
 
 
 # レスポンスとして返すユーザー情報

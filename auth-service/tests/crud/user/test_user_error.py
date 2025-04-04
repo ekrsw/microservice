@@ -276,3 +276,77 @@ async def test_update_user_with_too_long_password(db_session):
     # DBから削除されたことを確認
     result = await user.get_by_id(db_session, db_user.id)
     assert result is None
+
+@pytest.mark.asyncio
+async def test_update_to_duplicate_username(db_session):
+    # 2人のユーザーを作成
+    first_user = UserCreate(
+        username="firstuser",
+        password="password123"
+    )
+    second_user = UserCreate(
+        username="seconduser",
+        password="password123"
+    )
+    db_first_user = await user.create(db_session, first_user)
+    db_second_user = await user.create(db_session, second_user)
+
+    # 2人目のユーザーのユーザー名を1人目と同じものに更新しようとする
+    user_update = UserUpdate(username="firstuser")
+    
+    # IntegrityErrorが発生することを確認
+    with pytest.raises(IntegrityError) as exc_info:
+        await user.update(db_session, db_second_user, user_update)
+    
+    # エラーメッセージにユニーク制約違反が含まれていることを確認
+    assert "unique constraint" in str(exc_info.value).lower()
+    
+    # セッションをロールバック
+    await db_session.rollback()
+
+    # データベースの状態を確認
+    result = await db_session.execute(
+        select(User).filter(User.username.in_(["firstuser", "seconduser"]))
+    )
+    users = result.scalars().all()
+    usernames = [u.username for u in users]
+    assert "firstuser" in usernames
+    assert "seconduser" in usernames
+    assert len(users) == 2
+
+    # テストデータのクリーンアップ
+    for u in users:
+        await db_session.delete(u)
+    await db_session.commit()
+    # DBから削除されたことを確認
+    result_first = await user.get_by_id(db_session, db_first_user.id)
+    result_second = await user.get_by_id(db_session, db_second_user.id)
+    assert result_first is None
+    assert result_second is None
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_user(db_session):
+    # 存在しないユーザーを表すダミーユーザーオブジェクトを作成
+    from app.models.user import User
+    from uuid import uuid4
+    
+    nonexistent_user = User(
+        id=uuid4(),
+        username="nonexistent",
+        hashed_password="dummy"
+    )
+    
+    # 存在しないユーザーの更新を試みる
+    user_update = UserUpdate(username="newname")
+    
+    # SQLAlchemyのエラーが発生することを確認
+    with pytest.raises(Exception) as exc_info:  # 具体的な例外型はSQLAlchemyの実装に依存
+        await user.update(db_session, nonexistent_user, user_update)
+    
+    # エラーメッセージを確認（SQLAlchemyの実際のエラーメッセージに合わせる）
+    error_message = str(exc_info.value)
+    assert "not persistent within this session" in error_message.lower()
+    
+    # データベースに影響がないことを確認
+    result = await user.get_by_username(db_session, "newname")
+    assert result is None
