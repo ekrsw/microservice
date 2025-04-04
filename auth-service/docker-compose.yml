@@ -76,6 +76,8 @@ services:
       start_period: 10s
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
+    networks:
+      - auth_network
 
 volumes:
   postgres_data:
