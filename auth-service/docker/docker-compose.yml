@@ -1,4 +1,14 @@
 services:
+  auth:
+    container_name: auth-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}"
   db:
     image: postgres:17.4-alpine
     container_name: auth-db
@@ -14,6 +24,8 @@ services:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - auth_network
   test_db:
     image: postgres:17.4-alpine
     container_name: auth-test-db
@@ -30,3 +42,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  auth_network:
+    driver: bridge
