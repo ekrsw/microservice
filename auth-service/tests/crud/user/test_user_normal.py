@@ -1,9 +1,10 @@
+# 正常系テスト
 import pytest
 from app.core.security import verify_password
 from app.crud.user import user
 from app.schemas.user import UserCreate, UserUpdate
 
-# 正常系テスト
+
 # Create操作テスト
 @pytest.mark.asyncio
 async def test_create_user(db_session, unique_username):
