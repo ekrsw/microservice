@@ -12,4 +12,5 @@ services:
 
 networks:
   microservice_network:
-    external: true  # 既存のネットワークを使用
+    name: microservice_network
+    driver: bridge

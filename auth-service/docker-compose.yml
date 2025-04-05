@@ -101,4 +101,5 @@ networks:
   auth_network:
     driver: bridge
   microservice_network:
-    external: true
+    name: microservice_network
+    driver: bridge
