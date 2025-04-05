@@ -104,7 +104,10 @@ def get_request_logger(request: Request) -> logging.LoggerAdapter:
         リクエスト情報を含むロガーアダプター
     """
     logger = get_logger("app.api")
-    
+
+    # 親ロガーへの伝播を無効化する
+    logger.propagate = False
+
     # リクエストIDの取得
     request_id = getattr(request.state, "request_id", "no-request-id")
     
