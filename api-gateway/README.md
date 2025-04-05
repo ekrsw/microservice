@@ -55,13 +55,7 @@ Nginxのサーバー設定ファイルです。以下の設定が含まれてい
 
 ### 起動方法
 
-1. 共有ネットワークを作成します（初回のみ）：
-
-```powershell
-docker network create microservice_network
-```
-
-2. API-Gatewayを起動します：
+API-Gatewayを起動します：
 
 ```powershell
 cd api-gateway
@@ -80,7 +74,7 @@ curl http://localhost/health
 
 ## マイクロサービスとの連携
 
-API-Gatewayは、`microservice_network`という共有ネットワークを使用して他のマイクロサービスと通信します。各マイクロサービスは、このネットワークに接続する必要があります。
+API-Gatewayは、`microservice_network`という名前付き共有ネットワークを使用して他のマイクロサービスと通信します。各マイクロサービスは、このネットワークに接続する必要があります。
 
 例えば、auth-serviceのdocker-compose.ymlには以下の設定が必要です：
 
@@ -89,7 +83,8 @@ networks:
   auth_network:
     driver: bridge
   microservice_network:
-    external: true
+    name: microservice_network
+    driver: bridge
 ```
 
 また、authサービスの設定にも共有ネットワークを追加します：

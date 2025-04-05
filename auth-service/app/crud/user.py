@@ -20,6 +20,10 @@ class CRUDUser:
         await db.commit()
         await db.refresh(db_obj)
         return db_obj
+    
+    async def get_all_users(self, db: AsyncSession) -> list[User]:
+        result = await db.execute(select(User))
+        return result.scalars().all()
 
     async def get_by_id(self, db: AsyncSession, id: UUID) -> Optional[User]:
         result = await db.execute(select(User).filter(User.id == id))
