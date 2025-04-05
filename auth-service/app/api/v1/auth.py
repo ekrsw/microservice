@@ -63,7 +63,7 @@ async def login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
-) -> Any:
+    ) -> Any:
     """
     ユーザーログインとトークン発行のエンドポイント
     """
@@ -113,7 +113,7 @@ async def refresh_token(
     request: Request,
     token_data: RefreshToken,
     db: AsyncSession = Depends(get_db)
-) -> Any:
+    ) -> Any:
     """
     リフレッシュトークンを使用して新しいアクセストークンを発行するエンドポイント
     """
@@ -163,7 +163,7 @@ async def refresh_token(
 async def logout(
     request: Request,
     token_data: RefreshToken
-) -> Any:
+    ) -> Any:
     """
     ログアウトしてリフレッシュトークンを無効化するエンドポイント
     """
