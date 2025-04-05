@@ -1,0 +1,15 @@
+services:
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"  # 外部からは80ポートでアクセス、内部では80ポート
+    networks:
+      - microservice_network
+    restart: always
+
+networks:
+  microservice_network:
+    external: true  # 既存のネットワークを使用

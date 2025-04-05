@@ -1,7 +1,7 @@
 // auth.js - 認証関連の共通関数
 
 // APIのベースURL
-const API_BASE_URL = 'http://localhost:8000/api/v1/auth';
+const API_BASE_URL = 'http://localhost:80/api/v1/auth';
 
 // CORSの問題を回避するためのヘッダー
 const DEFAULT_HEADERS = {
