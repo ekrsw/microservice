@@ -1,8 +1,16 @@
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
-from typing import Optional
+from typing import Optional, Literal
+import os
 
 class Settings(BaseSettings):
+    # 環境設定
+    ENVIRONMENT: Literal["development", "testing", "production"] = "development"
+    
+    # ロギング設定
+    LOG_LEVEL: str = "INFO"
+    LOG_TO_FILE: bool = False
+    LOG_FILE_PATH: str = "logs/auth_service.log"
     # データベース設定
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
