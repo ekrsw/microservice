@@ -6,6 +6,7 @@ from uuid import UUID
 # 共通のプロパティを持つUserBaseクラス
 class UserBase(BaseModel):
     username: Optional[str] = None
+    is_admin: Optional[bool] = False
 
 
 # 新規ユーザー作成時に必要なプロパティ
@@ -18,12 +19,14 @@ class UserCreate(UserBase):
 class UserUpdate(UserBase):
     username: Optional[str] = Field(None, max_length=50)
     password: Optional[str] = Field(None, max_length=16)
+    is_active: Optional[bool] = None
 
 
 # レスポンスとして返すユーザー情報
 class UserInDBBase(UserBase):
     id: UUID
     username: str
+    is_admin: bool
 
     model_config = {
         "from_attributes": True,

@@ -14,7 +14,8 @@ class CRUDUser:
         hashed_password = await get_password_hash(password)
         db_obj = User(
             username=obj_in.username,
-            hashed_password= hashed_password
+            hashed_password= hashed_password,
+            is_admin=obj_in.is_admin
         )
         db.add(db_obj)
         await db.commit()
@@ -39,6 +40,10 @@ class CRUDUser:
                 db_obj.username = obj_in.username
             if obj_in.password is not None:
                 db_obj.hashed_password = await get_password_hash(obj_in.password)
+            if obj_in.is_active is not None:
+                db_obj.is_active = obj_in.is_active
+            if obj_in.is_admin is not None:
+                db_obj.is_admin = obj_in.is_admin
             await db.commit()
             await db.refresh(db_obj)
             return db_obj
