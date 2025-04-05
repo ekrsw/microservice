@@ -1,0 +1,56 @@
+@startuml
+title 3. トークンリフレッシュ (Refresh Token) のシーケンス図
+
+actor Client
+participant "FastAPI (main.py)" as FastAPI
+participant "Auth Router (auth.py)" as AuthRouter
+participant "API Dependencies (deps.py)" as APIDeps
+participant "Security (security.py)" as Security
+participant "User CRUD (user.py)" as UserCRUD
+database "Database (PostgreSQL)" as DB
+participant "Redis" as Redis
+
+Client -> FastAPI: POST /api/v1/auth/refresh (refresh_token_data)
+FastAPI -> AuthRouter: refresh_token(token_data)
+AuthRouter -> APIDeps: validate_refresh_token(token_data.refresh_token)
+APIDeps -> Security: verify_refresh_token(refresh_token)
+Security -> Redis: GET refresh_token:{token}
+Redis --> Security: user_id or nil
+
+alt 無効なリフレッシュトークン (user_id == None)
+    Security --> APIDeps: None
+    APIDeps --> AuthRouter: HTTPException(401)
+    AuthRouter --> FastAPI: HTTP 401 Unauthorized
+else 有効なリフレッシュトークン
+    Security --> APIDeps: user_id
+    APIDeps --> AuthRouter: user_id
+    
+    AuthRouter -> UserCRUD: get_by_id(db, id=UUID(user_id))
+    UserCRUD -> DB: SELECT * FROM users WHERE id=?
+    DB --> UserCRUD: user data
+    UserCRUD --> AuthRouter: db_user
+
+    alt ユーザーが存在しない (db_user == None)
+        UserCRUD --> AuthRouter: None
+        AuthRouter --> FastAPI: HTTP 401 Unauthorized
+    else ユーザーが存在する
+        AuthRouter -> Security: revoke_refresh_token(token_data.refresh_token)
+        Security -> Redis: DELETE refresh_token:{token}
+        Redis --> Security: result
+        Security --> AuthRouter: result
+
+        AuthRouter -> Security: create_access_token(data={"sub": str(db_user.id)})
+        Security --> AuthRouter: new_access_token
+
+        AuthRouter -> Security: create_refresh_token(user_id=str(db_user.id))
+        Security -> Redis: SET refresh_token:{new_token} user_id (with expiry)
+        Redis --> Security: OK
+        Security --> AuthRouter: new_refresh_token
+
+        AuthRouter --> FastAPI: HTTP 200 OK (new_access_token, new_refresh_token)
+    end
+end
+
+FastAPI --> Client: Response
+
+@enduml

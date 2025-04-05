@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from typing import Optional
 from pydantic import ValidationError
+from uuid import UUID
 
 from app.core.config import settings
 from app.core.security import verify_refresh_token
@@ -50,7 +51,7 @@ async def get_current_user(
         raise credentials_exception
         
     # ユーザーをデータベースから取得
-    user = await user_crud.get(db, id=user_id)
+    user = await user_crud.get_by_id(db, id=UUID(user_id))
     
     if user is None:
         raise credentials_exception

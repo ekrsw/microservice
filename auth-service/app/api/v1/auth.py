@@ -1,6 +1,7 @@
 import uuid
 from typing import Any
 from datetime import timedelta
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -102,7 +103,7 @@ async def refresh_token(
     user_id = await validate_refresh_token(token_data.refresh_token)
     
     # ユーザーの存在確認
-    db_user = await user.get(db, id=user_id)
+    db_user = await user.get_by_id(db, id=UUID(user_id))
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

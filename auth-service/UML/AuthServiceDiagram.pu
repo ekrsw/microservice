@@ -1,0 +1,43 @@
+@startuml 認証フロー全体のシーケンス図
+
+actor Client
+participant AuthService as "認証サービス"
+database DB as "PostgreSQL"
+participant Redis
+
+== ユーザー登録 ==
+Client -> AuthService: 1. ユーザー登録 (POST /api/v1/auth/register)
+AuthService -> DB: ユーザー情報を保存
+DB --> AuthService: 成功
+AuthService --> Client: ユーザー情報
+
+== ログイン ==
+Client -> AuthService: 2. ログイン (POST /api/v1/auth/login)
+AuthService -> DB: ユーザー認証
+DB --> AuthService: ユーザー情報
+AuthService -> Redis: リフレッシュトークンを保存
+Redis --> AuthService: 成功
+AuthService --> Client: アクセストークン + リフレッシュトークン
+
+== APIアクセス ==
+alt アクセストークンが有効な場合
+    note over Client, AuthService
+    アクセストークンを使用してAPI呼び出し
+    end note
+else アクセストークンの有効期限切れ  
+    Client -> AuthService: 3. トークンリフレッシュ (POST /api/v1/auth/refresh)
+    AuthService -> Redis: リフレッシュトークンを検証
+    Redis --> AuthService: 有効
+    AuthService -> Redis: 古いリフレッシュトークンを無効化
+    Redis --> AuthService: 成功
+    AuthService -> Redis: 新しいリフレッシュトークンを保存
+    Redis --> AuthService: 成功
+    AuthService --> Client: 新しいアクセストークン + リフレッシュトークン
+end
+== ログアウト ==
+Client -> AuthService: 4. ログアウト (POST /api/v1/auth/logout)
+AuthService -> Redis: リフレッシュトークンを無効化
+Redis --> AuthService: 成功
+AuthService --> Client: ログアウト成功
+
+@enduml

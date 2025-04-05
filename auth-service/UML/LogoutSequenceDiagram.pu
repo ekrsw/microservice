@@ -1,0 +1,27 @@
+@startuml
+title 4. ログアウト (Logout) のシーケンス図
+
+actor Client
+participant "FastAPI (main.py)" as FastAPI
+participant "Auth Router (auth.py)" as AuthRouter
+participant "Security (security.py)" as Security
+participant "Redis" as Redis
+
+Client -> FastAPI: POST /api/v1/auth/logout (token_data)
+FastAPI -> AuthRouter: logout(token_data)
+AuthRouter -> Security: revoke_refresh_token(refresh_token)
+Security -> Redis: DEL refresh_token(token)
+
+alt トークンが失効済みの場合 (False)
+    Redis --> Security: 0
+    Security --> AuthRouter: False
+    AuthRouter -> FastAPI: HTTP 400 Bad Request
+else トークンが有効な場合 (True)
+    Redis --> Security: 1
+    Security --> AuthRouter: True
+    AuthRouter -> FastAPI: HTTP 200 OK
+end
+
+Client <-- FastAPI: Response
+
+@enduml

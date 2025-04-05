@@ -18,6 +18,8 @@ alt ユーザーが既に存在する場合
     UserCRUD --> AuthRouter: existing_user
     AuthRouter -> FastAPI: HTTP 400 Bad Request
 else ユーザーが存在しない場合
+    DB --> UserCRUD: None
+    UserCRUD --> AuthRouter: None
     AuthRouter -> Security: get_password_hash(password)
     Security --> AuthRouter: hashed_password
     AuthRouter -> UserCRUD: create_user(username, hashed_password)
