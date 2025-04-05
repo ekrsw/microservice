@@ -1,0 +1,30 @@
+@startuml
+title 1. ユーザー登録 (Register) のシーケンス図
+
+actor Client
+participant "FastAPI (main.py)" as FastAPI
+participant "Auth Router (auth.py)" as AuthRouter
+participant "User CRUD (user.py)" as UserCRUD
+participant "Security (security.py)" as Security
+database "Database (PostgreSQL)" as DB
+
+Client -> FastAPI: POST /api/v1/auth/register
+FastAPI -> AuthRouter: register_user(username, password)
+AuthRouter -> UserCRUD: get_by_username(username)
+UserCRUD -> DB: SELECT * FROM users WHERE username=?
+
+alt ユーザーが既に存在する場合
+    DB --> UserCRUD: ユーザー情報 (存在する場合)
+    UserCRUD --> AuthRouter: existing_user
+    AuthRouter -> FastAPI: HTTP 400 Bad Request
+else ユーザーが存在しない場合
+    AuthRouter -> Security: get_password_hash(password)
+    Security --> AuthRouter: hashed_password
+    AuthRouter -> UserCRUD: create_user(username, hashed_password)
+    UserCRUD -> DB: INSERT INTO users
+    DB --> UserCRUD: 新規ユーザー情報
+    UserCRUD --> AuthRouter: new_user
+    AuthRouter --> Client: HTTP 200 OK (ユーザー情報)
+end
+
+@enduml

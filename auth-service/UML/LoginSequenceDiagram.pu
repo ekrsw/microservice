@@ -1,0 +1,41 @@
+@startuml
+title 2. ログイン (Login) のシーケンス図
+
+actor Client
+participant "FastAPI (main.py)" as FastAPI
+participant "Auth Router (auth.py)" as AuthRouter
+participant "User CRUD (user.py)" as UserCRUD
+participant "Security (security.py)" as Security
+database "Database (PostgreSQL)" as DB
+participant "Redis" as Redis
+
+Client -> FastAPI: POST /api/v1/auth/login (login_form_data)
+FastAPI -> AuthRouter: login(login_form_data)
+AuthRouter -> UserCRUD: get_by_username(username)
+UserCRUD -> DB: SELECT * FROM users WHERE username=?
+
+alt ユーザーが存在しない (db_user is None)
+    DB --> UserCRUD: None
+    UserCRUD --> AuthRouter: None
+    AuthRouter -> FastAPI: HTTP 401 Unauthorized
+else ユーザーが存在する
+    DB --> UserCRUD: ユーザー情報
+    UserCRUD --> AuthRouter: db_user
+    AuthRouter -> Security: verify_password(plain_password, db_user.password)
+    Security --> AuthRouter: True or False
+
+    alt パスワードが不正 (False)
+        AuthRouter -> FastAPI: HTTP 401 Unauthorized
+    else パスワードが正しい (True)
+        AuthRouter -> Security: create_access_token(...)
+        Security --> AuthRouter: access_token
+        AuthRouter -> Security: create_refresh_token(...)
+        Security --> AuthRouter: refresh_token
+        AuthRouter -> Redis: SET refresh_token (option)
+        AuthRouter -> FastAPI: HTTP 200 OK (access_token, refresh_token)
+    end
+end
+
+Client <-- FastAPI: Response
+
+@enduml
