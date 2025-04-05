@@ -1,5 +1,5 @@
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from jose import jwt
 import secrets
 import redis.asyncio as redis
@@ -28,9 +28,9 @@ async def create_access_token(data: Dict[str, Any], expires_delta: Optional[time
     to_encode = data.copy()
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -59,7 +59,7 @@ async def create_refresh_token(user_id: str) -> str:
     await r.setex(f"refresh_token:{token}", expiry, user_id)
     
     # 接続を閉じる
-    await r.close()
+    await r.aclose()
     
     return token
 
@@ -80,7 +80,7 @@ async def verify_refresh_token(token: str) -> Optional[str]:
     user_id = await r.get(f"refresh_token:{token}")
     
     # 接続を閉じる
-    await r.close()
+    await r.aclose()
     
     if user_id:
         return user_id.decode("utf-8")
@@ -104,6 +104,6 @@ async def revoke_refresh_token(token: str) -> bool:
     result = await r.delete(f"refresh_token:{token}")
     
     # 接続を閉じる
-    await r.close()
+    await r.aclose()
     
     return result > 0
