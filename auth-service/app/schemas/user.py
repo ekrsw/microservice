@@ -39,3 +39,18 @@ class User(UserInDBBase):
 # データベース内部で使用するスキーマ（パスワードハッシュを含む）
 class UserInDB(UserInDBBase):
     hashed_password: str
+
+
+# トークン関連のスキーマ
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class TokenPayload(BaseModel):
+    sub: Optional[str] = None
+
+
+class RefreshToken(BaseModel):
+    refresh_token: str
