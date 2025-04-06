@@ -12,6 +12,8 @@ services:
     extends:
       file: ./auth-service/docker-compose.yml
       service: auth-service
+    env_file:
+      - ./auth-service/.env
     networks:
       - microservice-network
 
