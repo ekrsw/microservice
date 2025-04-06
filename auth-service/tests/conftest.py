@@ -46,6 +46,19 @@ async def test_user(db_session, unique_username):
     db_user = await user.create(db_session, user_in)
     return db_user
 
+@pytest_asyncio.fixture
+async def admin_user(db_session, unique_username):
+    """テスト用の管理者ユーザーを作成する"""
+    username = f"admin_{unique_username}"
+    password = "admin_pass123"  # 16文字以下に短縮
+    user_in = UserCreate(
+        username=username,
+        password=password,
+        is_admin=True
+    )
+    db_user = await user.create(db_session, user_in)
+    return db_user
+
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
     # テスト用DBのテーブルを作成
