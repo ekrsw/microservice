@@ -27,6 +27,7 @@ class UserInDBBase(UserBase):
     id: UUID
     username: str
     is_admin: bool
+    is_active: bool
 
     model_config = {
         "from_attributes": True,

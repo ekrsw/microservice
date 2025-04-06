@@ -27,6 +27,8 @@ async def test_register_user_success(db_session, unique_username, async_client):
     data = response.json()
     assert data["username"] == unique_username
     assert "id" in data
+    assert data["is_active"] is True
+    assert data["is_admin"] is False
     
     # IDがUUIDフォーマットであることを確認
     try:
