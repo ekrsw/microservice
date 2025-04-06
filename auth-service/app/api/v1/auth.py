@@ -1,15 +1,16 @@
 import uuid
-from typing import Any
+from typing import Any, List
 from datetime import timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.crud.user import user
 from app.db.session import get_db
-from app.schemas.user import UserCreate, User as UserResponse, Token, RefreshToken
+from app.schemas.user import UserCreate, UserUpdate, User as UserResponse, Token, RefreshToken
 from app.core.security import (
     verify_password, 
     create_access_token, 
@@ -18,8 +19,9 @@ from app.core.security import (
     revoke_refresh_token
 )
 from app.core.config import settings
-from app.api.deps import validate_refresh_token
+from app.api.deps import validate_refresh_token, get_current_user, get_current_admin_user
 from app.core.logging import get_request_logger, app_logger
+from app.models.user import User
 
 router = APIRouter()
 
@@ -186,3 +188,81 @@ async def logout(
     except Exception as e:
         logger.error(f"ログアウト処理中にエラーが発生しました: {str(e)}", exc_info=True)
         raise
+
+
+@router.get("/users", response_model=List[UserResponse])
+async def get_all_users(
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    全ユーザーを取得するエンドポイント（管理者のみ）
+    """
+    logger = get_request_logger(request)
+    logger.info(f"全ユーザー取得リクエスト: 要求元={current_user.username}")
+    
+    users = await user.get_all_users(db)
+    return users
+
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: UUID,
+    user_in: UserUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    ユーザー情報を更新するエンドポイント
+    - 自分自身または管理者のみがユーザー情報を更新可能
+    - is_adminフラグは管理者のみが変更可能
+    """
+    logger = get_request_logger(request)
+    logger.info(f"ユーザー更新リクエスト: 対象ID={user_id}, 要求元={current_user.username}")
+    
+    # 更新対象ユーザーの取得
+    db_user = await user.get_by_id(db, id=user_id)
+    if not db_user:
+        logger.warning(f"ユーザー更新失敗: ユーザーID '{user_id}' が存在しません")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="指定されたユーザーが見つかりません"
+        )
+    
+    # 権限チェック
+    # 1. 自分以外のユーザーを更新する場合は管理者権限が必要
+    # 2. is_adminフラグを変更する場合は管理者権限が必要
+    if str(current_user.id) != str(user_id) and not current_user.is_admin:
+        logger.warning(f"ユーザー更新失敗: 権限不足 (ユーザー '{current_user.username}' は管理者ではありません)")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="他のユーザーを更新する権限がありません"
+        )
+    
+    # 一般ユーザーがis_adminフラグを変更しようとした場合
+    if user_in.is_admin is not None and user_in.is_admin != db_user.is_admin and not current_user.is_admin:
+        logger.warning(f"ユーザー更新失敗: 権限不足 (ユーザー '{current_user.username}' は管理者フラグを変更できません)")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="管理者権限を変更する権限がありません"
+        )
+    
+    # ユーザー更新
+    try:
+        updated_user = await user.update(db, db_user, user_in)
+        logger.info(f"ユーザー更新成功: ID={updated_user.id}, ユーザー名={updated_user.username}")
+        return updated_user
+    except IntegrityError:
+        logger.error(f"ユーザー更新失敗: データベースエラー", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ユーザー名が既に使用されています"
+        )
+    except Exception as e:
+        logger.error(f"ユーザー更新失敗: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ユーザー更新中にエラーが発生しました"
+        )

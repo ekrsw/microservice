@@ -58,6 +58,28 @@ async def get_current_user(
         
     return user
 
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    現在のユーザーが管理者であることを確認する依存関数
+    
+    Args:
+        current_user: 認証されたユーザー
+        
+    Returns:
+        User: 管理者権限を持つユーザー
+        
+    Raises:
+        HTTPException: ユーザーが管理者でない場合
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="この操作には管理者権限が必要です",
+        )
+    return current_user
+
 async def validate_refresh_token(refresh_token: str) -> Optional[str]:
     """
     リフレッシュトークンを検証する関数
