@@ -7,10 +7,10 @@ services:
     ports:
       - "80:80"  # 外部からは80ポートでアクセス、内部では80ポート
     networks:
-      - microservice_network
+      - microservice-network
     restart: always
 
 networks:
-  microservice_network:
-    name: microservice_network
+  microservice-network:
+    name: microservice-network
     driver: bridge

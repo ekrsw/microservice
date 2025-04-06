@@ -1,0 +1,24 @@
+services:
+  api-gateway:
+    extends:
+      file: ./api-gateway/docker-compose.yml
+      service: api-gateway
+    depends_on:
+      - auth-service
+    networks:
+      - microservice-network
+    
+  auth-service:
+    extends:
+      file: ./auth-service/docker-compose.yml
+      service: auth-service
+    networks:
+      - microservice-network
+
+networks:
+  microservice-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

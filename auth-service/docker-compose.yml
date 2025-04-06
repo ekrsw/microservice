@@ -1,5 +1,5 @@
 services:
-  auth:
+  auth-service:
     container_name: auth-service
     build:
       context: .
@@ -28,7 +28,7 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - auth_network
-      - microservice_network
+      - microservice-network
     deploy:
       resources:
         limits:
@@ -100,6 +100,6 @@ volumes:
 networks:
   auth_network:
     driver: bridge
-  microservice_network:
-    name: microservice_network
+  microservice-network:
+    name: microservice-network
     driver: bridge
