@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List
+from typing import Any, List, Optional
 from datetime import timedelta
 from uuid import UUID
 
@@ -19,7 +19,7 @@ from app.core.security import (
     revoke_refresh_token
 )
 from app.core.config import settings
-from app.api.deps import validate_refresh_token, get_current_user, get_current_admin_user
+from app.api.deps import validate_refresh_token, get_current_user, get_current_admin_user, get_optional_current_user
 from app.core.logging import get_request_logger, app_logger
 from app.models.user import User
 
@@ -30,13 +30,38 @@ router = APIRouter()
 async def register_user(
     request: Request,
     user_in: UserCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user)
     ) -> Any:
     """
     ユーザーを登録するエンドポイント
+    - 管理者ユーザーのみがadmin=Trueのユーザーを登録可能
+    - 認証されていないユーザーはadmin=Falseのユーザーのみ登録可能
     """
     logger = get_request_logger(request)
-    logger.info(f"ユーザー登録リクエスト: {user_in.username}")
+    
+    # 認証されていないユーザーの場合
+    if current_user is None:
+        logger.info(f"未認証ユーザーからの登録リクエスト: {user_in.username}")
+        
+        # 未認証ユーザーがadmin=Trueのユーザーを登録しようとした場合
+        if user_in.is_admin:
+            logger.warning(f"ユーザー登録失敗: 未認証ユーザーは管理者ユーザーを登録できません")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="管理者ユーザーを登録する権限がありません"
+            )
+    else:
+        # 認証済みユーザーの場合
+        logger.info(f"ユーザー登録リクエスト: {user_in.username}, 要求元={current_user.username}")
+        
+        # 管理者権限チェック - admin=Trueのユーザーを登録する場合は管理者権限が必要
+        if user_in.is_admin and not current_user.is_admin:
+            logger.warning(f"ユーザー登録失敗: 権限不足 (ユーザー '{current_user.username}' は管理者ではありません)")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="管理者ユーザーを登録する権限がありません"
+            )
     
     # ユーザー名の重複チェック
     existing_user = await user.get_by_username(db, username=user_in.username)
@@ -56,7 +81,7 @@ async def register_user(
             detail="ユーザーの登録に失敗しました。"
         )
     
-    logger.info(f"ユーザー登録成功: ID={new_user.id}, ユーザー名={new_user.username}")
+    logger.info(f"ユーザー登録成功: ID={new_user.id}, ユーザー名={new_user.username}, 管理者={new_user.is_admin}")
     return new_user
 
 

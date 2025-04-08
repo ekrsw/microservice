@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from typing import Optional
@@ -79,6 +79,48 @@ async def get_current_admin_user(
             detail="この操作には管理者権限が必要です",
         )
     return current_user
+
+async def get_optional_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """
+    現在のユーザーを取得する依存関数（オプショナル）
+    認証されていない場合はNoneを返す
+    
+    Args:
+        request: リクエスト
+        db: データベースセッション
+        
+    Returns:
+        Optional[User]: 認証されたユーザー、または認証されていない場合はNone
+    """
+    from typing import Optional
+    
+    # Authorizationヘッダーを取得
+    authorization = request.headers.get("Authorization")
+    if not authorization:
+        return None
+        
+    scheme, token = authorization.split()
+    if scheme.lower() != "bearer":
+        return None
+        
+    try:
+        # トークンをデコード
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        
+        if user_id is None:
+            return None
+            
+        # ユーザーをデータベースから取得
+        user_obj = await user_crud.get_by_id(db, id=UUID(user_id))
+        return user_obj
+    except (JWTError, ValidationError):
+        return None
 
 async def validate_refresh_token(refresh_token: str) -> Optional[str]:
     """
