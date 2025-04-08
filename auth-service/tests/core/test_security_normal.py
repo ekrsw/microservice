@@ -2,7 +2,7 @@
 import pytest
 import pytest_asyncio
 from datetime import datetime, timedelta
-from jose import jwt
+from jose import jwt, JWTError
 import fakeredis.aioredis
 from unittest.mock import patch, AsyncMock
 from freezegun import freeze_time
@@ -60,7 +60,7 @@ async def test_create_access_token_success():
     # トークンをデコードして検証
     payload = jwt.decode(
         token, 
-        settings.SECRET_KEY, 
+        settings.PUBLIC_KEY, 
         algorithms=[settings.ALGORITHM]
     )
     
@@ -86,7 +86,7 @@ async def test_create_access_token_with_custom_exp():
     # トークンをデコードして検証
     payload = jwt.decode(
         token, 
-        settings.SECRET_KEY, 
+        settings.PUBLIC_KEY, 
         algorithms=[settings.ALGORITHM]
     )
     

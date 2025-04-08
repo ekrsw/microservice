@@ -59,10 +59,10 @@ async def test_decode_token_with_wrong_secret():
     # 正しい秘密鍵でトークン生成
     token = await create_access_token(data)
     
-    # 誤った秘密鍵でデコード
-    wrong_secret = "wrong_secret_key"
+    # 誤った公開鍵でデコード
+    wrong_key = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu1SU1LfVLPHCozMxH2Mo\n4lgOEePzNm0tRgeLezV6ffAt0gunVTLw7onLRnrq0/IzW7yWR7QkrmBL7jTKEn5u\n+qKhbwKfBstIs+bMY2Zkp18gnTxKLxoS2tFczGkPLPgizskuemMghRniWaoLcyeh\nkd3qqGElvW/VDL5AaWTg0nLVkjRo9z+40RQzuVaE8AkAFmxZzow3x+VJYKdjykkJ\n0iT9wCS0DRTXu269V264Vf/3jvredZiKRkgwlL9xNAwxXFg0x/XFw005UWVRIkdg\ncKWTjpBP2dPwVZ4WWC+9aGVd+Gyn1o0CLelf4rEjGoXbAAEgAqeGUxrcIlbjXfbc\nmwIDAQAB\n-----END PUBLIC KEY-----"
     with pytest.raises(JWTError):
-        jwt.decode(token, wrong_secret, algorithms=[settings.ALGORITHM])
+        jwt.decode(token, wrong_key, algorithms=[settings.ALGORITHM])
 
 
 @pytest.mark.asyncio
@@ -75,9 +75,9 @@ async def test_decode_token_with_wrong_algorithm():
     token = await create_access_token(data)
     
     # 誤ったアルゴリズムでデコード
-    wrong_algorithm = "HS512"  # 正しくはHS256
+    wrong_algorithm = "RS512"  # 正しくはRS256
     with pytest.raises(JWTError):
-        jwt.decode(token, settings.SECRET_KEY, algorithms=[wrong_algorithm])
+        jwt.decode(token, settings.PUBLIC_KEY, algorithms=[wrong_algorithm])
 
 
 @pytest.mark.asyncio
@@ -93,7 +93,7 @@ async def test_decode_expired_token():
     with freeze_time("2025-01-01 12:00:02"):  # 2秒後
         # 期限切れトークンをデコード
         with pytest.raises(JWTError) as exc_info:
-            jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            jwt.decode(token, settings.PUBLIC_KEY, algorithms=[settings.ALGORITHM])
         
         # エラーメッセージを確認
         assert "expired" in str(exc_info.value).lower()
@@ -106,7 +106,7 @@ async def test_decode_invalid_token_format():
     
     # 無効なトークンをデコード
     with pytest.raises(JWTError):
-        jwt.decode(invalid_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        jwt.decode(invalid_token, settings.PUBLIC_KEY, algorithms=[settings.ALGORITHM])
 
 
 # リフレッシュトークン関連のエラーテスト
