@@ -4,6 +4,7 @@ import pytest
 import pytest_asyncio
 import uuid
 import asyncio
+import os
 from fastapi import FastAPI
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport
@@ -13,7 +14,32 @@ from app.db.session import test_async_engine, TestAsyncSessionLocal, get_db, get
 from app.crud.user import user
 from app.main import app
 from app.schemas.user import UserCreate
+from app.core.config import settings
 
+
+# テスト用の鍵パスを設定
+TEST_PRIVATE_KEY_PATH = os.path.join(os.path.dirname(__file__), "keys/test_private.pem")
+TEST_PUBLIC_KEY_PATH = os.path.join(os.path.dirname(__file__), "keys/test_public.pem")
+
+@pytest.fixture(scope="session", autouse=True)
+def override_settings():
+    """テスト用の設定をオーバーライド"""
+    # 元の設定を保存
+    original_algorithm = settings.ALGORITHM
+    original_private_key_path = settings.PRIVATE_KEY_PATH
+    original_public_key_path = settings.PUBLIC_KEY_PATH
+    
+    # テスト用の設定に変更
+    settings.ALGORITHM = "RS256"
+    settings.PRIVATE_KEY_PATH = TEST_PRIVATE_KEY_PATH
+    settings.PUBLIC_KEY_PATH = TEST_PUBLIC_KEY_PATH
+    
+    yield
+    
+    # テスト後に元の設定に戻す
+    settings.ALGORITHM = original_algorithm
+    settings.PRIVATE_KEY_PATH = original_private_key_path
+    settings.PUBLIC_KEY_PATH = original_public_key_path
 
 @pytest_asyncio.fixture
 async def async_client():

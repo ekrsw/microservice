@@ -31,7 +31,9 @@ class Settings(BaseSettings):
     
     # トークン設定
     SECRET_KEY: str
-    ALGORITHM: str = "HS256"
+    ALGORITHM: str = "RS256"  # HS256からRS256に変更
+    PRIVATE_KEY_PATH: str = "keys/private.pem"  # 秘密鍵のパス
+    PUBLIC_KEY_PATH: str = "keys/public.pem"   # 公開鍵のパス
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
@@ -50,6 +52,25 @@ class Settings(BaseSettings):
     @property
     def REDIS_URL(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/0"
+    
+    @property
+    def PRIVATE_KEY(self) -> str:
+        """秘密鍵の内容を読み込む"""
+        try:
+            with open(self.PRIVATE_KEY_PATH, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            # 開発環境では環境変数から直接読み込む選択肢も
+            return os.environ.get("PRIVATE_KEY", "")
+
+    @property
+    def PUBLIC_KEY(self) -> str:
+        """公開鍵の内容を読み込む"""
+        try:
+            with open(self.PUBLIC_KEY_PATH, "r") as f:
+                return f.read()
+        except FileNotFoundError:
+            return os.environ.get("PUBLIC_KEY", "")
 
     model_config = ConfigDict(
         env_file=".env",

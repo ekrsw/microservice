@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, UTC
-from jose import jwt
+from jose import jwt, JWTError
 import secrets
 import redis.asyncio as redis
 from typing import Optional, Dict, Any
@@ -16,7 +16,7 @@ async def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 async def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
-    アクセストークンを作成する関数
+    非対称暗号を使用してアクセストークンを作成する関数
     
     Args:
         data: トークンに含めるデータ（通常はユーザーID）
@@ -33,9 +33,58 @@ async def create_access_token(data: Dict[str, Any], expires_delta: Optional[time
         expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    
+    # 秘密鍵を使用してトークンを署名
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        settings.PRIVATE_KEY, 
+        algorithm=settings.ALGORITHM
+    )
     
     return encoded_jwt
+
+async def verify_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    JWTトークンを検証し、ペイロードを返す関数
+    
+    Args:
+        token: 検証するJWTトークン
+        
+    Returns:
+        Optional[Dict[str, Any]]: トークンが有効な場合はペイロード、無効な場合はNone
+    """
+    try:
+        # 公開鍵を使用してトークンを検証
+        payload = jwt.decode(
+            token, 
+            settings.PUBLIC_KEY, 
+            algorithms=[settings.ALGORITHM]
+        )
+        return payload
+    except JWTError:
+        return None
+
+async def verify_token_with_fallback(token: str) -> Optional[Dict[str, Any]]:
+    """
+    両方の方式をサポートする移行期間用のトークン検証関数
+    
+    Args:
+        token: 検証するJWTトークン
+        
+    Returns:
+        Optional[Dict[str, Any]]: トークンが有効な場合はペイロード、無効な場合はNone
+    """
+    # まず新しい非対称鍵で検証を試みる
+    try:
+        payload = jwt.decode(token, settings.PUBLIC_KEY, algorithms=["RS256"])
+        return payload
+    except JWTError:
+        # 失敗したら古い対称鍵で検証を試みる
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            return payload
+        except JWTError:
+            return None
 
 async def create_refresh_token(user_id: str) -> str:
     """
