@@ -16,3 +16,6 @@ migrations/version/*
 
 # Mac関連
 .DS_Store
+
+# セキュリティ
+private.pem
