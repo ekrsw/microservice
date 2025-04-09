@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.logging import app_logger, get_request_logger
@@ -37,16 +38,24 @@ async def lifespan(app: FastAPI):
         
         # 既存の管理者ユーザーを確認
         async with AsyncSessionLocal() as session:
-            existing_admin = await user.get_by_username(session, admin_username)
-            if not existing_admin:
-                await user.create(session, UserCreate(
-                    username=admin_username,
-                    password=admin_password,
-                    is_admin=True
-                ))
-                app_logger.info(f"Initial admin user '{admin_username}' created successfully")
-            else:
-                app_logger.info(f"Admin user '{admin_username}' already exists")
+            try:
+                existing_admin = await user.get_by_username(session, admin_username)
+                if not existing_admin:
+                    try:
+                        await user.create(session, UserCreate(
+                            username=admin_username,
+                            password=admin_password,
+                            is_admin=True
+                        ))
+                        app_logger.info(f"Initial admin user '{admin_username}' created successfully")
+                    except IntegrityError:
+                        # 他のプロセスが既にユーザーを作成している場合
+                        app_logger.info(f"Admin user '{admin_username}' already created by another process")
+                else:
+                    app_logger.info(f"Admin user '{admin_username}' already exists")
+            except Exception as e:
+                app_logger.error(f"Error creating admin user: {e}")
+                # ユーザー作成のエラーはアプリ起動を妨げるべきではない
     except Exception as e:
         app_logger.error(f"Error initializing database: {e}")
         raise

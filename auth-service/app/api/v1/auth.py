@@ -2,6 +2,8 @@ import uuid
 from typing import Any, List, Optional
 from datetime import timedelta
 from uuid import UUID
+from jose import JWTError, jwt
+from pydantic import ValidationError
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
@@ -16,10 +18,11 @@ from app.core.security import (
     create_access_token, 
     create_refresh_token, 
     verify_refresh_token,
-    revoke_refresh_token
+    revoke_refresh_token,
+    verify_token_with_fallback
 )
 from app.core.config import settings
-from app.api.deps import validate_refresh_token, get_current_user, get_current_admin_user, get_optional_current_user
+from app.api.deps import validate_refresh_token, get_current_user, get_current_admin_user
 from app.core.logging import get_request_logger, app_logger
 from app.models.user import User
 
@@ -30,38 +33,55 @@ router = APIRouter()
 async def register_user(
     request: Request,
     user_in: UserCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_optional_current_user)
+    db: AsyncSession = Depends(get_db)
     ) -> Any:
     """
-    ユーザーを登録するエンドポイント
-    - 管理者ユーザーのみがadmin=Trueのユーザーを登録可能
-    - 認証されていないユーザーはadmin=Falseのユーザーのみ登録可能
+    一般ユーザーを登録するエンドポイント
+    - 認証不要
+    - 常にis_admin=Falseで登録される
     """
     logger = get_request_logger(request)
+    logger.info(f"一般ユーザー登録リクエスト: {user_in.username}")
     
-    # 認証されていないユーザーの場合
-    if current_user is None:
-        logger.info(f"未認証ユーザーからの登録リクエスト: {user_in.username}")
-        
-        # 未認証ユーザーがadmin=Trueのユーザーを登録しようとした場合
-        if user_in.is_admin:
-            logger.warning(f"ユーザー登録失敗: 未認証ユーザーは管理者ユーザーを登録できません")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="管理者ユーザーを登録する権限がありません"
-            )
-    else:
-        # 認証済みユーザーの場合
-        logger.info(f"ユーザー登録リクエスト: {user_in.username}, 要求元={current_user.username}")
-        
-        # 管理者権限チェック - admin=Trueのユーザーを登録する場合は管理者権限が必要
-        if user_in.is_admin and not current_user.is_admin:
-            logger.warning(f"ユーザー登録失敗: 権限不足 (ユーザー '{current_user.username}' は管理者ではありません)")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="管理者ユーザーを登録する権限がありません"
-            )
+    # 管理者フラグを強制的にFalseに設定
+    user_in.is_admin = False
+    
+    # ユーザー名の重複チェック
+    existing_user = await user.get_by_username(db, username=user_in.username)
+    if existing_user:
+        logger.warning(f"ユーザー登録失敗: ユーザー名 '{user_in.username}' は既に使用されています")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="このユーザー名は既に登録されています。"
+        )
+    
+    # ユーザー作成
+    new_user = await user.create(db, user_in)
+    if not new_user:
+        logger.error(f"ユーザー登録失敗: '{user_in.username}' の作成中にエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ユーザーの登録に失敗しました。"
+        )
+    
+    logger.info(f"ユーザー登録成功: ID={new_user.id}, ユーザー名={new_user.username}, 管理者={new_user.is_admin}")
+    return new_user
+
+
+@router.post("/admin/register", response_model=UserResponse)
+async def admin_register_user(
+    request: Request,
+    user_in: UserCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+    ) -> Any:
+    """
+    管理者による新規ユーザー登録エンドポイント
+    - 管理者認証が必要
+    - is_admin=TrueまたはFalseのユーザーを登録可能
+    """
+    logger = get_request_logger(request)
+    logger.info(f"管理者によるユーザー登録リクエスト: {user_in.username}, 要求元={current_user.username}")
     
     # ユーザー名の重複チェック
     existing_user = await user.get_by_username(db, username=user_in.username)

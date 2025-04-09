@@ -81,49 +81,6 @@ async def get_current_admin_user(
         )
     return current_user
 
-async def get_optional_current_user(
-        request: Request,
-        db: AsyncSession = Depends(get_db)
-        ) -> Optional[User]:
-    """
-    現在のユーザーを取得する依存関数（オプショナル）
-    認証されていない場合はNoneを返す
-    
-    Args:
-        request: リクエスト
-        db: データベースセッション
-        
-    Returns:
-        Optional[User]: 認証されたユーザー、または認証されていない場合はNone
-    """
-    from typing import Optional
-    
-    # Authorizationヘッダーを取得
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        return None
-        
-    scheme, token = authorization.split()
-    if scheme.lower() != "bearer":
-        return None
-        
-    try:
-        # 移行期間中は両方の方式をサポート
-        payload = await verify_token_with_fallback(token)
-        if payload is None:
-            return None
-            
-        user_id: str = payload.get("sub")
-        
-        if user_id is None:
-            return None
-            
-        # ユーザーをデータベースから取得
-        user_obj = await user_crud.get_by_id(db, id=UUID(user_id))
-        return user_obj
-    except (JWTError, ValidationError):
-        return None
-
 async def validate_refresh_token(refresh_token: str) -> Optional[str]:
     """
     リフレッシュトークンを検証する関数
