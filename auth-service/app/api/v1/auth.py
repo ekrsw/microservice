@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 from datetime import timedelta
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -293,13 +293,13 @@ async def update_user(
         )
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/users/{user_id}")
 async def delete_user(
     user_id: UUID,
     request: Request,
     current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
-) -> Any:
+):
     """
     ユーザーを削除するエンドポイント（管理者のみ）
     """
@@ -327,7 +327,7 @@ async def delete_user(
     try:
         await user.delete(db, db_user)
         logger.info(f"ユーザー削除成功: ID={user_id}, ユーザー名={db_user.username}")
-        return None
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         logger.error(f"ユーザー削除失敗: {str(e)}", exc_info=True)
         raise HTTPException(
