@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
-) -> User:
+        token: str = Depends(oauth2_scheme),
+        db: AsyncSession = Depends(get_db)
+        ) -> User:
     """
     アクセストークンからユーザーを取得する依存関数
     
@@ -60,8 +60,8 @@ async def get_current_user(
     return user
 
 async def get_current_admin_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+        current_user: User = Depends(get_current_user)
+        ) -> User:
     """
     現在のユーザーが管理者であることを確認する依存関数
     
@@ -82,9 +82,9 @@ async def get_current_admin_user(
     return current_user
 
 async def get_optional_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db)
-) -> Optional[User]:
+        request: Request,
+        db: AsyncSession = Depends(get_db)
+        ) -> Optional[User]:
     """
     現在のユーザーを取得する依存関数（オプショナル）
     認証されていない場合はNoneを返す
