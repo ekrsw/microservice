@@ -13,7 +13,7 @@ from app.core.logging import app_logger, get_request_logger
 from app.db.init import Database
 from app.db.session import AsyncSessionLocal
 from app.crud.user import user
-from app.schemas.user import UserCreate
+from app.schemas.user import AdminUserCreate
 
 # ログディレクトリの作成（ファイルログが有効な場合）
 if settings.LOG_TO_FILE:
@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
                 existing_admin = await user.get_by_username(session, admin_username)
                 if not existing_admin:
                     try:
-                        await user.create(session, UserCreate(
+                        await user.create(session, AdminUserCreate(
                             username=admin_username,
                             password=admin_password,
                             is_admin=True
