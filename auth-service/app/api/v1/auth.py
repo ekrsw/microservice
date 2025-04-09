@@ -291,3 +291,46 @@ async def update_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ユーザー更新中にエラーが発生しました"
         )
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(
+    user_id: UUID,
+    request: Request,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    ユーザーを削除するエンドポイント（管理者のみ）
+    """
+    logger = get_request_logger(request)
+    logger.info(f"ユーザー削除リクエスト: 対象ID={user_id}, 要求元={current_user.username}")
+    
+    # 削除対象ユーザーの取得
+    db_user = await user.get_by_id(db, id=user_id)
+    if not db_user:
+        logger.warning(f"ユーザー削除失敗: ユーザーID '{user_id}' が存在しません")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="指定されたユーザーが見つかりません"
+        )
+    
+    # 自分自身を削除しようとしていないか確認
+    if str(current_user.id) == str(user_id):
+        logger.warning(f"ユーザー削除失敗: ユーザー '{current_user.username}' が自分自身を削除しようとしています")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="自分自身を削除することはできません"
+        )
+    
+    # ユーザー削除
+    try:
+        await user.delete(db, db_user)
+        logger.info(f"ユーザー削除成功: ID={user_id}, ユーザー名={db_user.username}")
+        return None
+    except Exception as e:
+        logger.error(f"ユーザー削除失敗: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ユーザー削除中にエラーが発生しました"
+        )
