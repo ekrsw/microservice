@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_TO_FILE: bool = False
     LOG_FILE_PATH: str = "logs/auth_service.log"
+    
+    # 初期管理者ユーザー設定
+    INITIAL_ADMIN_USERNAME: str = "admin"
+    INITIAL_ADMIN_PASSWORD: str = "changeme"  # 本番環境では強力なパスワードに変更
     # データベース設定
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
