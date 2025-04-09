@@ -13,7 +13,7 @@ from app.db.base import Base
 from app.db.session import test_async_engine, TestAsyncSessionLocal, get_db, get_test_db
 from app.crud.user import user
 from app.main import app
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, AdminUserCreate
 from app.core.config import settings
 
 
@@ -77,7 +77,7 @@ async def admin_user(db_session, unique_username):
     """テスト用の管理者ユーザーを作成する"""
     username = f"admin_{unique_username}"
     password = "admin_pass123"  # 16文字以下に短縮
-    user_in = UserCreate(
+    user_in = AdminUserCreate(
         username=username,
         password=password,
         is_admin=True

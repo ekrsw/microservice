@@ -2,7 +2,7 @@
 import pytest
 from app.core.security import verify_password
 from app.crud.user import user
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, AdminUserCreate, UserUpdate
 
 
 # Create操作テスト
@@ -11,8 +11,7 @@ async def test_create_user(db_session, unique_username):
     # db_sessionがテスト用DBへの接続を提供
     user_in = UserCreate(
         username=unique_username,
-        password="password123",
-        is_admin=False
+        password="password123"
     )
     
     # ユーザー作成
@@ -68,8 +67,8 @@ async def test_create_user_is_admin_false(db_session, unique_username):
 
 @pytest.mark.asyncio
 async def test_create_user_is_admin_true(db_session, unique_username):
-    # ユーザー作成（is_adminあり）
-    user_in = UserCreate(
+    # 管理者ユーザー作成（AdminUserCreateを使用）
+    user_in = AdminUserCreate(
         username=unique_username,
         password="password123",
         is_admin=True
@@ -97,8 +96,7 @@ async def test_get_user_by_id_exists(db_session, unique_username):
     # ユーザーを作成
     user_in = UserCreate(
         username=unique_username,
-        password="password123",
-        is_admin=False
+        password="password123"
     )
     db_user = await user.create(db_session, user_in)
 
@@ -121,8 +119,7 @@ async def test_get_user_by_username_exists(db_session):
     # ユーザー作成
     user_in = UserCreate(
         username="findme",
-        password="password123",
-        is_admin=False
+        password="password123"
         )
     await user.create(db_session, user_in)
     
@@ -149,8 +146,7 @@ async def test_update_username(db_session):
     # ユーザー作成
     user_in = UserCreate(
         username="oldname",
-        password="password123",
-        is_admin=False
+        password="password123"
         )
     db_user = await user.create(db_session, user_in)
     
@@ -177,8 +173,7 @@ async def test_update_password(db_session):
     # ユーザー作成
     user_in = UserCreate(
         username="pwduser",
-        password="oldpassword",
-        is_admin=False
+        password="oldpassword"
         )
     db_user = await user.create(db_session, user_in)
     
@@ -207,8 +202,7 @@ async def test_update_is_admin(db_session):
     # ユーザー作成
     user_in = UserCreate(
         username="adminuser",
-        password="password123",
-        is_admin=False
+        password="password123"
         )
     db_user = await user.create(db_session, user_in)
     
@@ -235,8 +229,7 @@ async def test_update_is_active(db_session):
     # ユーザー作成
     user_in = UserCreate(
         username="activeuser",
-        password="password123",
-        is_admin=False
+        password="password123"
         )
     db_user = await user.create(db_session, user_in)
     
