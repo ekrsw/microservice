@@ -10,7 +10,13 @@ class UserBase(BaseModel):
 
 
 # 新規ユーザー作成時に必要なプロパティ
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=16)
+
+
+# 新規監視やユーザー作成時に必要なプロパティ
+class AdminUserCreate(UserBase):
     username: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=1, max_length=16)
 

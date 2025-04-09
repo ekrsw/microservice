@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.crud.user import user
 from app.db.session import get_db
-from app.schemas.user import UserCreate, UserUpdate, User as UserResponse, Token, RefreshToken
+from app.schemas.user import AdminUserCreate, UserCreate, UserUpdate, User as UserResponse, Token, RefreshToken
 from app.core.security import (
     verify_password, 
     create_access_token, 
@@ -43,9 +43,6 @@ async def register_user(
     logger = get_request_logger(request)
     logger.info(f"一般ユーザー登録リクエスト: {user_in.username}")
     
-    # 管理者フラグを強制的にFalseに設定
-    user_in.is_admin = False
-    
     # ユーザー名の重複チェック
     existing_user = await user.get_by_username(db, username=user_in.username)
     if existing_user:
@@ -71,7 +68,7 @@ async def register_user(
 @router.post("/admin/register", response_model=UserResponse)
 async def admin_register_user(
     request: Request,
-    user_in: UserCreate,
+    user_in: AdminUserCreate,
     current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
     ) -> Any:

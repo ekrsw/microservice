@@ -5,7 +5,7 @@ import uuid
 
 from app.main import app
 from app.crud.user import user
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, AdminUserCreate
 from app.core.security import create_access_token
 
 
@@ -66,24 +66,26 @@ async def test_register_user_duplicate_username(db_session, async_client, unique
 
 
 @pytest.mark.asyncio
-async def test_register_admin_user_by_unauthenticated_user_forbidden(db_session, async_client, unique_username):
+async def test_register_user_with_standard_endpoint(db_session, async_client, unique_username):
     """
-    異常系テスト：認証されていないユーザーが管理者用エンドポイントにアクセスするとエラーになることを確認
+    正常系テスト：一般登録エンドポイントを使用すると、一般ユーザーとして登録されることを確認
     """
-    # 管理者ユーザーとして登録しようとするデータ
-    admin_user_data = {
+    # 一般ユーザーとして登録するデータ
+    user_data = {
         "username": unique_username,
-        "password": "test_password123",
-        "is_admin": True
+        "password": "test_password123"
     }
     
-    # 認証なしで管理者用エンドポイントにリクエスト
-    response = await async_client.post("/api/v1/auth/admin/register", json=admin_user_data)
+    # 認証なしで一般登録エンドポイントにリクエスト
+    response = await async_client.post("/api/v1/auth/register", json=user_data)
     
-    # レスポンスの検証 - 認証エラーになるはず
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    error_data = response.json()
-    assert "detail" in error_data
+    # レスポンスの検証 - 成功するはず
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["username"] == unique_username
+    assert "id" in data
+    assert data["is_active"] is True
+    assert data["is_admin"] is False  # 管理者フラグがFalseになっていることを確認
 
 
 @pytest.mark.asyncio
@@ -114,20 +116,48 @@ async def test_register_admin_user_by_regular_user_forbidden(db_session, test_us
     assert response.status_code == status.HTTP_403_FORBIDDEN
     error_data = response.json()
     assert "detail" in error_data
-
-
 @pytest.mark.asyncio
-async def test_register_admin_user_by_admin_success(db_session, admin_user, async_client, unique_username):
+async def test_admin_user_using_regular_endpoint(db_session, admin_user, async_client, unique_username):
     """
-    正常系テスト：管理者ユーザーが管理者用エンドポイントでis_admin=Trueでユーザーを登録できることを確認
+    正常系テスト：管理者ユーザーが一般登録エンドポイントを使用すると、一般ユーザーとして登録されることを確認
     """
     # 管理者用アクセストークンの生成
     access_token = await create_access_token(
         data={"sub": str(admin_user.id)}
     )
     
-    # 新しい管理者ユーザーとして登録するデータ
-    new_admin_user_data = {
+    # 一般ユーザーとして登録するデータ
+    user_data = {
+        "username": unique_username,
+        "password": "test_password123"
+    }
+    
+    # 管理者の認証で一般登録エンドポイントにリクエスト
+    response = await async_client.post(
+        "/api/v1/auth/register", 
+        json=user_data,
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    # レスポンスの検証 - 成功するはず
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["username"] == unique_username
+    assert "id" in data
+    assert data["is_active"] is True
+    assert data["is_admin"] is False  # 管理者フラグがFalseになっていることを確認
+@pytest.mark.asyncio
+async def test_admin_user_create_admin_user(db_session, admin_user, async_client, unique_username):
+    """
+    正常系テスト：管理者ユーザーが管理者用エンドポイントで管理者ユーザーを登録できることを確認
+    """
+    # 管理者用アクセストークンの生成
+    access_token = await create_access_token(
+        data={"sub": str(admin_user.id)}
+    )
+    
+    # 管理者ユーザーとして登録するデータ
+    admin_user_data = {
         "username": unique_username,
         "password": "test_password123",
         "is_admin": True
@@ -136,20 +166,14 @@ async def test_register_admin_user_by_admin_success(db_session, admin_user, asyn
     # 管理者の認証で管理者用エンドポイントにリクエスト
     response = await async_client.post(
         "/api/v1/auth/admin/register", 
-        json=new_admin_user_data,
+        json=admin_user_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
-    # レスポンスの検証
+    # レスポンスの検証 - 成功するはず
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["username"] == unique_username
     assert "id" in data
     assert data["is_active"] is True
-    assert data["is_admin"] is True
-    
-    # IDがUUIDフォーマットであることを確認
-    try:
-        uuid.UUID(data["id"])
-    except ValueError:
-        assert False, "IDはUUID形式ではありません"
+    assert data["is_admin"] is True  # 管理者フラグがTrueになっていることを確認

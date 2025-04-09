@@ -5,17 +5,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, AdminUserCreate, UserUpdate
 from app.core.security import get_password_hash
 
 class CRUDUser:
-    async def create(self, db: AsyncSession, obj_in: UserCreate) -> User:
+    async def create(self, db: AsyncSession, obj_in: UserCreate | AdminUserCreate) -> User:
         password = obj_in.password
         hashed_password = await get_password_hash(password)
+        
+        # UserCreateの場合はis_adminがないのでFalseをデフォルト値として使用
+        is_admin = getattr(obj_in, 'is_admin', False)
+        
         db_obj = User(
             username=obj_in.username,
-            hashed_password= hashed_password,
-            is_admin=obj_in.is_admin
+            hashed_password=hashed_password,
+            is_admin=is_admin
         )
         db.add(db_obj)
         await db.commit()
