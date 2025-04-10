@@ -237,7 +237,7 @@ async def get_all_users(
     request: Request,
     current_user: User = Depends(get_current_admin_user),
     db: AsyncSession = Depends(get_db)
-) -> Any:
+    ) -> Any:
     """
     全ユーザーを取得するエンドポイント（管理者のみ）
     """
