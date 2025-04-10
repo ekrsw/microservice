@@ -1,4 +1,6 @@
 from app.core.logging import app_logger as logger
+from app.db.base import Base
+from app.db.session import engine
 
 class Database:
     """データベース初期化を担当するクラス"""
@@ -14,3 +16,17 @@ class Database:
         
         logger.info("Database initialization completed")
         return True
+
+# データベース初期化用のインスタンス
+db = Database()
+
+async def init_db():
+    """
+    データベースの初期化を行う関数
+    """
+    async with engine.begin() as conn:
+        # テーブルの作成
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # その他の初期化処理
+    await db.init()

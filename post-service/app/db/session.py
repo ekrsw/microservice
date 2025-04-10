@@ -7,7 +7,7 @@ from app.core.config import settings
 
 
 # 非同期エンジンの作成
-async_engine = create_async_engine(
+engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.SQLALCHEMY_ECHO,
     future=True
@@ -15,7 +15,7 @@ async_engine = create_async_engine(
 
 # 非同期セッションファクトリーの作成
 AsyncSessionLocal = sessionmaker(
-    async_engine,
+    engine,
     class_=AsyncSession,
     autocommit=False,
     autoflush=False,
