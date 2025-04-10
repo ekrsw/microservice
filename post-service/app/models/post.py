@@ -16,4 +16,4 @@ class Post(Base):
         UUID(as_uuid=True), nullable=False, index=True
         )
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    published_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, server_default=func.now())
+    published_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

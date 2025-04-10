@@ -6,6 +6,7 @@ WORKDIR /workdir
 # 必要な環境変数を設定
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/workdir
 
 # 依存関係のインストール
 COPY ./requirements.txt .
