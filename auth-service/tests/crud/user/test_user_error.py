@@ -4,7 +4,7 @@ from pydantic import ValidationError
 import uuid
 from app.core.security import verify_password
 from app.crud.user import user
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import PasswordUpdate, UserCreate, UserUpdate
 from app.models.user import User
 from sqlalchemy.exc import IntegrityError, StatementError
 from sqlalchemy import select
@@ -255,15 +255,18 @@ async def test_update_user_with_too_long_password(db_session):
     # 17文字のパスワードを生成（最大制限は16文字）
     too_long_password = "a" * 17
     
-    # 長すぎるパスワードでUserUpdateスキーマを作成しようとする
+    # 長すぎるパスワードでPasswordUpdateスキーマを作成しようとする
     with pytest.raises(ValidationError) as exc_info:
-        user_update = UserUpdate(password=too_long_password)
+        password_update = PasswordUpdate(
+            current_password="originalpass123",
+            new_password=too_long_password
+        )
     
     # エラーの詳細を検証
     error = exc_info.value.errors()
     assert len(error) == 1
     assert error[0]["type"] == "string_too_long"
-    assert error[0]["loc"] == ("password",)
+    assert error[0]["loc"] == ("new_password",)
     assert error[0]["ctx"]["max_length"] == 16
 
     # データベースのパスワードが変更されていないことを確認
