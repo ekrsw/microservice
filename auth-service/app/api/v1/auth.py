@@ -248,7 +248,43 @@ async def get_all_users(
     return users
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
+@router.get("/user/{user_id}", response_model=UserResponse)
+async def get_user_by_id(
+    user_id: UUID,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    IDによるユーザー情報取得エンドポイント
+    - 自分自身または管理者のみがユーザー情報を取得可能
+    """
+    logger = get_request_logger(request)
+    logger.info(f"ユーザー情報取得リクエスト: 対象ID={user_id}, 要求元={current_user.username}")
+    
+    # 取得対象ユーザーの取得
+    db_user = await user.get_by_id(db, id=user_id)
+    if not db_user:
+        logger.warning(f"ユーザー情報取得失敗: ユーザーID '{user_id}' が存在しません")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="指定されたユーザーが見つかりません"
+        )
+    
+    # 権限チェック
+    # 自分以外のユーザー情報を取得する場合は管理者権限が必要
+    if str(current_user.id) != str(user_id) and not current_user.is_admin:
+        logger.warning(f"ユーザー情報取得失敗: 権限不足 (ユーザー '{current_user.username}' は管理者ではありません)")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="他のユーザー情報を取得する権限がありません"
+        )
+    
+    logger.info(f"ユーザー情報取得成功: ID={db_user.id}, ユーザー名={db_user.username}")
+    return db_user
+
+
+@router.put("/update/user/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: UUID,
     user_in: UserUpdate,
@@ -310,7 +346,7 @@ async def update_user(
         )
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/delete/user/{user_id}")
 async def delete_user(
     user_id: UUID,
     request: Request,

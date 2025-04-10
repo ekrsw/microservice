@@ -18,7 +18,7 @@ async def test_admin_delete_user_success(db_session, admin_user, test_user, asyn
     
     # APIリクエスト
     response = await async_client.delete(
-        f"/api/v1/auth/users/{test_user.id}",
+        f"/api/v1/auth/delete/user/{test_user.id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
@@ -38,7 +38,7 @@ async def test_admin_delete_self_forbidden(db_session, admin_user, async_client)
     
     # APIリクエスト（自分自身を削除しようとする）
     response = await async_client.delete(
-        f"/api/v1/auth/users/{admin_user.id}",
+        f"/api/v1/auth/delete/user/{admin_user.id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
@@ -60,7 +60,7 @@ async def test_regular_user_delete_forbidden(db_session, test_user, admin_user, 
     
     # APIリクエスト（管理者ユーザーを削除しようとする）
     response = await async_client.delete(
-        f"/api/v1/auth/users/{admin_user.id}",
+        f"/api/v1/auth/delete/user/{admin_user.id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
@@ -85,7 +85,7 @@ async def test_delete_nonexistent_user_not_found(db_session, admin_user, async_c
     
     # APIリクエスト
     response = await async_client.delete(
-        f"/api/v1/auth/users/{nonexistent_id}",
+        f"/api/v1/auth/delete/user/{nonexistent_id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     

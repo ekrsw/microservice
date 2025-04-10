@@ -23,7 +23,7 @@ async def test_update_self_success(db_session, test_user, async_client):
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{test_user.id}",
+        f"/api/v1/auth/update/user/{test_user.id}",
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -52,7 +52,7 @@ async def test_admin_update_other_user_success(db_session, admin_user, test_user
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{test_user.id}",
+        f"/api/v1/auth/update/user/{test_user.id}",
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -80,7 +80,7 @@ async def test_admin_update_admin_flag_success(db_session, admin_user, test_user
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{test_user.id}",
+        f"/api/v1/auth/update/user/{test_user.id}",
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -107,7 +107,7 @@ async def test_regular_user_update_other_user_forbidden(db_session, test_user, a
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{admin_user.id}",  # 別のユーザーのID
+        f"/api/v1/auth/update/user/{admin_user.id}",  # 別のユーザーのID
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -135,7 +135,7 @@ async def test_regular_user_update_admin_flag_forbidden(db_session, test_user, a
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{test_user.id}",  # 自分自身のID
+        f"/api/v1/auth/update/user/{test_user.id}",  # 自分自身のID
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )
@@ -166,7 +166,7 @@ async def test_update_nonexistent_user_not_found(db_session, admin_user, async_c
     
     # APIリクエスト
     response = await async_client.put(
-        f"/api/v1/auth/users/{nonexistent_id}",
+        f"/api/v1/auth/update/user/{nonexistent_id}",
         json=update_data,
         headers={"Authorization": f"Bearer {access_token}"}
     )

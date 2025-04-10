@@ -284,10 +284,43 @@ GET /auth/users
 
 ---
 
+#### ユーザー情報取得
+
+```
+GET /auth/user/{user_id}
+```
+
+**説明**: 指定されたユーザーの情報を取得します。自分自身または管理者のみが取得可能です。
+
+**パスパラメータ**:
+
+- `user_id`: 取得対象のユーザー ID (UUID)
+
+**認証要件**: 有効なアクセストークン
+
+**レスポンス** (200 OK):
+
+```json
+{
+  "id": "uuid",
+  "username": "string",
+  "is_admin": boolean,
+  "is_active": boolean
+}
+```
+
+**エラーレスポンス**:
+
+- 401 Unauthorized: 認証情報が無効
+- 403 Forbidden: 権限がない
+- 404 Not Found: 指定されたユーザーが存在しない
+
+---
+
 #### ユーザー情報更新
 
 ```
-PUT /auth/users/{user_id}
+PUT /auth/update/user/{user_id}
 ```
 
 **説明**: 指定されたユーザーの情報を更新します。自分自身または管理者のみが更新可能です。管理者権限の変更は管理者のみが可能です。
@@ -334,7 +367,7 @@ PUT /auth/users/{user_id}
 #### ユーザー削除
 
 ```
-DELETE /auth/users/{user_id}
+DELETE /auth/delete/user/{user_id}
 ```
 
 **説明**: 指定されたユーザーを削除します。管理者のみが実行可能で、自分自身は削除できません。
