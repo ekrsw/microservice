@@ -179,7 +179,7 @@ async def test_update_password(db_session):
     
     # パスワード更新
     user_update = UserUpdate(password="newpassword")
-    updated_user = await user.update(db_session, db_user, user_update)
+    updated_user = await user.update_password(db_session, db_user, user_update)
     
     # パスワードが更新されていることを確認
     assert await verify_password("newpassword", updated_user.hashed_password)
