@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.crud.user import user
 from app.db.session import get_db
-from app.schemas.user import AdminUserCreate, UserCreate, UserUpdate, User as UserResponse, Token, RefreshToken
+from app.schemas.user import AdminUserCreate, UserCreate, UserUpdate, PasswordUpdate, AdminPasswordUpdate, User as UserResponse, Token, RefreshToken
 from app.core.security import (
     verify_password, 
     create_access_token, 
@@ -343,6 +343,80 @@ async def update_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ユーザー更新中にエラーが発生しました"
+        )
+
+
+@router.post("/update/password", response_model=UserResponse)
+async def update_password(
+    request: Request,
+    password_update: PasswordUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    ユーザーのパスワードを更新するエンドポイント
+    - 現在のパスワード確認が必要
+    - 自分自身のパスワードのみ更新可能
+    """
+    logger = get_request_logger(request)
+    logger.info(f"パスワード更新リクエスト: ユーザーID={current_user.id}")
+    
+    # 現在のパスワード確認
+    if not await verify_password(password_update.current_password, current_user.hashed_password):
+        logger.warning(f"パスワード更新失敗: ユーザーID={current_user.id} - 現在のパスワードが不正")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="現在のパスワードが正しくありません"
+        )
+    
+    # パスワード更新
+    try:
+        updated_user = await user.update_password(db, current_user, password_update.new_password)
+        logger.info(f"パスワード更新成功: ユーザーID={updated_user.id}")
+        return updated_user
+    except Exception as e:
+        logger.error(f"パスワード更新失敗: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="パスワード更新中にエラーが発生しました"
+        )
+
+
+@router.post("/admin/update/password", response_model=UserResponse)
+async def admin_update_password(
+    request: Request,
+    password_update: AdminPasswordUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: AsyncSession = Depends(get_db)
+) -> Any:
+    """
+    管理者によるユーザーのパスワード更新エンドポイント
+    - 管理者認証が必要
+    - 現在のパスワード確認は不要
+    - 任意のユーザーのパスワードを更新可能
+    """
+    logger = get_request_logger(request)
+    logger.info(f"管理者によるパスワード更新リクエスト: 対象ユーザーID={password_update.user_id}, 要求元={current_user.username}")
+    
+    # 更新対象ユーザーの取得
+    db_user = await user.get_by_id(db, id=password_update.user_id)
+    if not db_user:
+        logger.warning(f"パスワード更新失敗: ユーザーID '{password_update.user_id}' が存在しません")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="指定されたユーザーが見つかりません"
+        )
+    
+    # パスワード更新
+    try:
+        updated_user = await user.update_password(db, db_user, password_update.new_password)
+        logger.info(f"パスワード更新成功: ユーザーID={updated_user.id}, 管理者={current_user.username}")
+        return updated_user
+    except Exception as e:
+        logger.error(f"パスワード更新失敗: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="パスワード更新中にエラーが発生しました"
         )
 
 

@@ -1,15 +1,35 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+from contextlib import asynccontextmanager
 
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.db.init import init_db
 from app.core.logging import app_logger as logger
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    アプリケーションのライフサイクルを管理します
+    """
+    # 起動時の処理
+    logger.info("Starting up Post Service...")
+    
+    # データベースの初期化
+    await init_db()
+    
+    logger.info("Post Service started successfully")
+    
+    yield
+    
+    # 終了時の処理
+    logger.info("Shutting down Post Service...")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 # CORS設定
@@ -25,17 +45,6 @@ if settings.BACKEND_CORS_ORIGINS:
 # APIルーターの登録
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    アプリケーション起動時の処理
-    """
-    logger.info("Starting up Post Service...")
-    
-    # データベースの初期化
-    await init_db()
-    
-    logger.info("Post Service started successfully")
 
 @app.get("/health")
 async def health_check():

@@ -26,8 +26,9 @@ class PostInDB(PostBase):
     updated_at: datetime
     published_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # APIレスポンス用スキーマ
 class Post(PostInDB):

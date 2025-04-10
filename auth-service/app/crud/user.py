@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.models.user import User
-from app.schemas.user import UserCreate, AdminUserCreate, UserUpdate
+from app.schemas.user import UserCreate, AdminUserCreate, UserUpdate, PasswordUpdate
 from app.core.security import get_password_hash
 
 class CRUDUser:
@@ -42,8 +42,6 @@ class CRUDUser:
         try:
             if obj_in.username is not None:
                 db_obj.username = obj_in.username
-            if obj_in.password is not None:
-                db_obj.hashed_password = await get_password_hash(obj_in.password)
             if obj_in.is_active is not None:
                 db_obj.is_active = obj_in.is_active
             if obj_in.is_admin is not None:
@@ -52,6 +50,27 @@ class CRUDUser:
             await db.refresh(db_obj)
             return db_obj
         except IntegrityError:
+            await db.rollback()
+            raise
+    
+    async def update_password(self, db: AsyncSession, db_obj: User, new_password: str) -> User:
+        """
+        ユーザーのパスワードのみを更新する関数
+        
+        Args:
+            db: データベースセッション
+            db_obj: 更新対象のユーザーオブジェクト
+            new_password: 新しいパスワード
+            
+        Returns:
+            User: 更新されたユーザーオブジェクト
+        """
+        try:
+            db_obj.hashed_password = await get_password_hash(new_password)
+            await db.commit()
+            await db.refresh(db_obj)
+            return db_obj
+        except Exception:
             await db.rollback()
             raise
 

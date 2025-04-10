@@ -21,10 +21,27 @@ class AdminUserCreate(UserBase):
     password: str = Field(..., min_length=1, max_length=16)
 
 
-# ユーザー更新時に使うプロパティ
+# パスワード更新時に使うプロパティ
+class PasswordUpdate(BaseModel):
+    current_password: str = Field(..., min_length=1, max_length=16)
+    new_password: str = Field(..., min_length=1, max_length=16)
+    
+    @validator('new_password')
+    def passwords_must_not_match(cls, v, values):
+        if 'current_password' in values and v == values['current_password']:
+            raise ValueError('新しいパスワードは現在のパスワードと異なる必要があります')
+        return v
+
+
+# 管理者によるパスワード更新時に使うプロパティ
+class AdminPasswordUpdate(BaseModel):
+    user_id: UUID
+    new_password: str = Field(..., min_length=1, max_length=16)
+
+
+# ユーザー更新時に使うプロパティ（パスワード更新は含まない）
 class UserUpdate(UserBase):
     username: Optional[str] = Field(None, max_length=50)
-    password: Optional[str] = Field(None, max_length=16)
     is_active: Optional[bool] = None
 
 
