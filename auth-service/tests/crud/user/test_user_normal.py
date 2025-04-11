@@ -36,7 +36,7 @@ async def test_create_user(db_session, unique_username):
 
     # ユーザーの削除
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     result = await user.get_by_id(db_session, db_user.id)
     assert result is None
@@ -60,7 +60,7 @@ async def test_create_user_is_admin_false(db_session, unique_username):
 
     # ユーザーの削除
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     result = await user.get_by_id(db_session, db_user.id)
     assert result is None
@@ -85,7 +85,7 @@ async def test_create_user_is_admin_true(db_session, unique_username):
 
     # ユーザーの削除
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     result = await user.get_by_id(db_session, db_user.id)
     assert result is None
@@ -109,7 +109,7 @@ async def test_get_user_by_id_exists(db_session, unique_username):
 
     # ユーザーの削除
     await db_session.delete(found_user)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     found_user = await user.get_by_id(db_session, db_user.id)
     assert found_user is None
@@ -135,7 +135,7 @@ async def test_get_user_by_username_exists(db_session):
 
     # ユーザーの削除
     await db_session.delete(found_user)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     found_user = await user.get_by_username(db_session, "findme")
     assert found_user is None
@@ -163,7 +163,7 @@ async def test_update_username(db_session):
 
     # ユーザーの削除
     await db_session.delete(db_updated)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated is None
@@ -192,7 +192,7 @@ async def test_update_password(db_session):
 
     # ユーザーの削除
     await db_session.delete(db_updated)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated is None
@@ -234,7 +234,7 @@ async def test_update_method_separate_from_password(db_session, unique_username)
 
     # ユーザーの削除
     await db_session.delete(db_updated)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated is None
@@ -261,7 +261,7 @@ async def test_update_is_admin(db_session):
 
     # ユーザーの削除
     await db_session.delete(db_updated)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated is None
@@ -288,7 +288,7 @@ async def test_update_is_active(db_session):
 
     # ユーザーの削除
     await db_session.delete(db_updated)
-    await db_session.commit()
+    await db_session.flush()  # flushでDBに反映
     # DBから削除されたことを確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated is None
@@ -302,7 +302,8 @@ async def test_delete_user(db_session):
     
     # ユーザー削除
     await user.delete(db_session, db_user)
-    
+    await db_session.flush() # flushでDBに反映
+
     # 削除確認
     found_user = await user.get_by_id(db_session, db_user.id)
     assert found_user is None

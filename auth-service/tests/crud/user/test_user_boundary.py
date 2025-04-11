@@ -26,7 +26,7 @@ async def test_create_user_with_minimum_length_username(db_session):
     
     # クリーンアップ
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, "a")
@@ -52,7 +52,7 @@ async def test_create_user_with_maximum_length_username(db_session):
     
     # クリーンアップ
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, max_length_username)
@@ -71,7 +71,7 @@ async def test_create_user_with_minimum_length_password(db_session):
     
     # クリーンアップ
     await db_session.delete(db_obj)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, "testuser")
@@ -91,7 +91,7 @@ async def test_create_user_with_maximum_length_password(db_session):
     
     # クリーンアップ
     await db_session.delete(db_obj)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, "testuser")
@@ -116,7 +116,7 @@ async def test_create_user_with_special_characters_in_username(db_session):
     
     # クリーンアップ
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, special_username)
@@ -141,7 +141,7 @@ async def test_create_user_with_unicode_characters_in_username(db_session):
     
     # クリーンアップ
     await db_session.delete(result)
-    await db_session.commit()
+    await db_session.flush()  # DBに変更を反映
 
     # ユーザーが削除されたか確認
     result = await user.get_by_username(db_session, unicode_username)

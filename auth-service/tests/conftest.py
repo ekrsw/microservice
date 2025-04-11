@@ -10,7 +10,8 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport
 
 from app.db.base import Base
-from app.db.session import test_async_engine, TestAsyncSessionLocal, get_db, get_test_db
+from sqlalchemy.ext.asyncio import AsyncSession # 追加
+from app.db.session import test_async_engine, TestAsyncSessionLocal, get_db # get_test_db は不要になるので削除
 from app.crud.user import user
 from app.main import app
 from app.schemas.user import UserCreate, AdminUserCreate
@@ -42,17 +43,23 @@ def override_settings():
     settings.PUBLIC_KEY_PATH = original_public_key_path
 
 @pytest_asyncio.fixture
-async def async_client():
-    """非同期テストクライアントを提供する"""
-    # テスト用DBを使用するように依存関係をオーバーライド
-    app.dependency_overrides[get_db] = get_test_db
+async def async_client(db_session: AsyncSession): # db_session をパラメータとして注入
+    """
+    非同期テストクライアントを提供し、APIがテストセッションを使用するように依存関係をオーバーライドする
+    """
+    # db_sessionフィクスチャから提供されたセッションを返す依存関係オーバーライド関数
+    async def override_get_db():
+        yield db_session # 注入された db_session を返す
+
+    # get_dbの依存関係をオーバーライド
+    app.dependency_overrides[get_db] = override_get_db
     
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
     
     # テスト後に依存関係をリセット
-    app.dependency_overrides = {}
+    del app.dependency_overrides[get_db]
 
 
 @pytest.fixture
@@ -86,23 +93,19 @@ async def admin_user(db_session, unique_username):
     return db_user
 
 @pytest_asyncio.fixture(scope="function")
-async def db_session():
-    # テスト用DBのテーブルを作成
+async def db_session() -> AsyncSession:
+    # テスト用DBのテーブルを作成（初回のみ）
+    # Note: スコープを"session"にして初回のみ実行する方が効率的だが、
+    #       ここでは各テストでクリーンな状態を保証するために"function"スコープのままにする
     async with test_async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.drop_all) # 既存テーブルを削除
+        await conn.run_sync(Base.metadata.create_all) # テーブル再作成
     
-    # テストセッションを提供
+    # テストセッションとネストされたトランザクションを提供
     async with TestAsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            # テスト後にデータをクリアする（同じセッション内で）
-            try:
-                await session.rollback()  # 保留中のトランザクションをロールバック
-                # テーブルのデータをクリア
-                for table in reversed(Base.metadata.sorted_tables):
-                    await session.execute(table.delete())
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
+        # ネストされたトランザクションを開始
+        async with session.begin_nested() as nested_transaction:
+            yield session # テスト関数にセッションを提供
+            # テスト終了後、ネストされたトランザクションをロールバック
+            await nested_transaction.rollback()
+        # セッション自体は TestAsyncSessionLocal のコンテキストマネージャが閉じる

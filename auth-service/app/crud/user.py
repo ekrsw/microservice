@@ -22,7 +22,8 @@ class CRUDUser:
             is_admin=is_admin
         )
         db.add(db_obj)
-        await db.commit()
+        # コミットは呼び出し元に任せる
+        await db.flush() # flush() でセッションに変更を反映
         await db.refresh(db_obj)
         return db_obj
     
@@ -46,11 +47,13 @@ class CRUDUser:
                 db_obj.is_active = obj_in.is_active
             if obj_in.is_admin is not None:
                 db_obj.is_admin = obj_in.is_admin
-            await db.commit()
+            # コミットは呼び出し元に任せる
+            await db.flush() # flush() でセッションに変更を反映
             await db.refresh(db_obj)
             return db_obj
         except IntegrityError:
-            await db.rollback()
+            # ロールバックは呼び出し元に任せる
+            # await db.rollback() # 削除
             raise
     
     async def update_password(self, db: AsyncSession, db_obj: User, new_password: str) -> User:
@@ -65,14 +68,15 @@ class CRUDUser:
         Returns:
             User: 更新されたユーザーオブジェクト
         """
-        try:
-            db_obj.hashed_password = get_password_hash(new_password)
-            await db.commit()
-            await db.refresh(db_obj)
-            return db_obj
-        except Exception:
-            await db.rollback()
-            raise
+        # try/except は不要になるか、より具体的な例外を捕捉するように変更可能
+        # ここではシンプルに削除
+        db_obj.hashed_password = get_password_hash(new_password)
+        # コミットは呼び出し元に任せる
+        # flush() でセッションに変更を反映させる（コミット前）
+        await db.flush() 
+        await db.refresh(db_obj)
+        return db_obj
+        # ロールバックも呼び出し元に任せる
 
     async def delete(self, db: AsyncSession, db_obj: User) -> None:
         # Check if the user exists in the database
@@ -81,6 +85,7 @@ class CRUDUser:
             raise ValueError("User not found")
         
         await db.delete(existing_user)
-        await db.commit()
+        # コミットは呼び出し元に任せる
+        await db.flush() # flush() でセッションに変更を反映
 
 user = CRUDUser()
