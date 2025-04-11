@@ -47,6 +47,7 @@ async def lifespan(app: FastAPI):
                             password=admin_password,
                             is_admin=True
                         ))
+                        await session.commit()
                         app_logger.info(f"Initial admin user '{admin_username}' created successfully")
                     except IntegrityError:
                         # 他のプロセスが既にユーザーを作成している場合

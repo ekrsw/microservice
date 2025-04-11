@@ -28,6 +28,7 @@ async def get_db() -> AsyncSession:
         try:
             yield session
         finally:
+            await session.commit()
             await session.close()
 
 # テスト用の非同期エンジンとセッションファクトリーの作成
