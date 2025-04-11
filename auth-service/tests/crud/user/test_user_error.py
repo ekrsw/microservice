@@ -271,7 +271,7 @@ async def test_update_user_with_too_long_password(db_session):
 
     # データベースのパスワードが変更されていないことを確認
     db_user_check = await user.get_by_id(db_session, db_user.id)
-    assert await verify_password("originalpass123", db_user_check.hashed_password)
+    assert verify_password("originalpass123", db_user_check.hashed_password)
 
     # テストデータのクリーンアップ
     await db_session.delete(db_user)

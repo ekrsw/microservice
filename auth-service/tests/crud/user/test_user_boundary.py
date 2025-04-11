@@ -67,7 +67,7 @@ async def test_create_user_with_minimum_length_password(db_session):
     )
     
     db_obj = await user.create(db_session, user_in)
-    assert await verify_password("a", db_obj.hashed_password)
+    assert verify_password("a", db_obj.hashed_password)
     
     # クリーンアップ
     await db_session.delete(db_obj)
@@ -87,7 +87,7 @@ async def test_create_user_with_maximum_length_password(db_session):
     )
     
     db_obj = await user.create(db_session, user_in)
-    assert await verify_password(max_length_password, db_obj.hashed_password)
+    assert verify_password(max_length_password, db_obj.hashed_password)
     
     # クリーンアップ
     await db_session.delete(db_obj)

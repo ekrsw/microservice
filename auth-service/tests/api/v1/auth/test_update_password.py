@@ -38,7 +38,7 @@ async def test_update_own_password_success(db_session, test_user, async_client):
     # 注：実際のテストでは、DBへの直接アクセスではなく、ログインなどの機能を使って間接的に確認するのが望ましい
     from app.crud.user import user
     db_user = await user.get_by_id(db_session, test_user.id)
-    assert await verify_password("new_password456", db_user.hashed_password)
+    assert verify_password("new_password456", db_user.hashed_password)
 
 @pytest.mark.asyncio
 async def test_update_password_wrong_current_password(db_session, test_user, async_client):

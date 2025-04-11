@@ -19,7 +19,7 @@ async def test_admin_update_other_user_password_success(db_session, admin_user, 
     # 更新データ
     update_data = {
         "user_id": str(test_user.id),
-        "new_password": "admin_password"
+        "new_password": "updated_password"
     }
     
     # APIリクエスト
@@ -42,7 +42,7 @@ async def test_admin_update_other_user_password_success(db_session, admin_user, 
     # DBからユーザーを再取得して、パスワードが更新されていることを確認
     from app.crud.user import user
     db_user = await user.get_by_id(db_session, test_user.id)
-    assert await verify_password("admin_password", db_user.hashed_password)
+    assert verify_password("updated_password", db_user.hashed_password)
 
 @pytest.mark.asyncio
 async def test_admin_update_own_password_success(db_session, admin_user, async_client):
@@ -75,7 +75,7 @@ async def test_admin_update_own_password_success(db_session, admin_user, async_c
     # DBからユーザーを再取得して、パスワードが更新されていることを確認
     from app.crud.user import user
     db_user = await user.get_by_id(db_session, admin_user.id)
-    assert await verify_password("new_admin_pass", db_user.hashed_password)
+    assert verify_password("new_admin_pass", db_user.hashed_password)
 
 @pytest.mark.asyncio
 async def test_regular_user_cannot_use_admin_endpoint(db_session, test_user, async_client):

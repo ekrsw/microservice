@@ -125,7 +125,7 @@ async def login(
         )
     
     # パスワード検証
-    if not await verify_password(form_data.password, db_user.hashed_password):
+    if not verify_password(form_data.password, db_user.hashed_password):
         logger.warning(f"ログイン失敗: ユーザー '{form_data.username}' のパスワードが不正です")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -362,7 +362,7 @@ async def update_password(
     logger.info(f"パスワード更新リクエスト: ユーザーID={current_user.id}")
     
     # 現在のパスワード確認
-    if not await verify_password(password_update.current_password, current_user.hashed_password):
+    if not verify_password(password_update.current_password, current_user.hashed_password):
         logger.warning(f"パスワード更新失敗: ユーザーID={current_user.id} - 現在のパスワードが不正")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

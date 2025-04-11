@@ -23,7 +23,7 @@ from app.core.config import settings
 async def test_get_password_hash_success():
     """パスワードのハッシュ化が正しく行われるかテスト"""
     password = "testpassword123"
-    hashed_password = await get_password_hash(password)
+    hashed_password = get_password_hash(password)
     
     # ハッシュ化されたパスワードが元のパスワードと異なることを確認
     assert hashed_password != password
@@ -35,14 +35,14 @@ async def test_get_password_hash_success():
 async def test_verify_password_success():
     """正しいパスワードが検証できるかテスト"""
     password = "testpassword123"
-    hashed_password = await get_password_hash(password)
+    hashed_password = get_password_hash(password)
     
     # 正しいパスワードで検証
-    is_valid = await verify_password(password, hashed_password)
+    is_valid = verify_password(password, hashed_password)
     assert is_valid is True
     
     # 誤ったパスワードで検証
-    is_valid = await verify_password("wrongpassword", hashed_password)
+    is_valid = verify_password("wrongpassword", hashed_password)
     assert is_valid is False
 
 

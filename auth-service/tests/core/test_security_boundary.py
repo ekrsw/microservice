@@ -109,14 +109,14 @@ async def test_access_token_with_large_payload():
 async def test_verify_password_with_min_length():
     """最小長（1文字）のパスワード検証テスト"""
     min_password = "a"
-    hashed_password = await get_password_hash(min_password)
+    hashed_password = get_password_hash(min_password)
     
     # 正しいパスワードで検証
-    is_valid = await verify_password(min_password, hashed_password)
+    is_valid = verify_password(min_password, hashed_password)
     assert is_valid is True
     
     # 誤ったパスワードで検証
-    is_valid = await verify_password("b", hashed_password)
+    is_valid = verify_password("b", hashed_password)
     assert is_valid is False
 
 
@@ -125,15 +125,15 @@ async def test_verify_password_with_max_length():
     """最大長（72文字、bcryptの制限）のパスワード検証テスト"""
     # bcryptの最大長は72バイト
     max_password = "a" * 72
-    hashed_password = await get_password_hash(max_password)
+    hashed_password = get_password_hash(max_password)
     
     # 正しいパスワードで検証
-    is_valid = await verify_password(max_password, hashed_password)
+    is_valid = verify_password(max_password, hashed_password)
     assert is_valid is True
     
     # 誤ったパスワードで検証
     wrong_password = "a" * 71 + "b"
-    is_valid = await verify_password(wrong_password, hashed_password)
+    is_valid = verify_password(wrong_password, hashed_password)
     assert is_valid is False
 
 
@@ -141,14 +141,14 @@ async def test_verify_password_with_max_length():
 async def test_verify_password_with_special_chars():
     """特殊文字を含むパスワード検証テスト"""
     special_password = "P@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?/~`"
-    hashed_password = await get_password_hash(special_password)
+    hashed_password = get_password_hash(special_password)
     
     # 正しいパスワードで検証
-    is_valid = await verify_password(special_password, hashed_password)
+    is_valid = verify_password(special_password, hashed_password)
     assert is_valid is True
     
     # 誤ったパスワードで検証
-    is_valid = await verify_password("P@ssw0rd", hashed_password)
+    is_valid = verify_password("P@ssw0rd", hashed_password)
     assert is_valid is False
 
 
@@ -156,14 +156,14 @@ async def test_verify_password_with_special_chars():
 async def test_verify_password_with_unicode_chars():
     """Unicode文字（日本語など）を含むパスワード検証テスト"""
     unicode_password = "パスワード123テスト"
-    hashed_password = await get_password_hash(unicode_password)
+    hashed_password = get_password_hash(unicode_password)
     
     # 正しいパスワードで検証
-    is_valid = await verify_password(unicode_password, hashed_password)
+    is_valid = verify_password(unicode_password, hashed_password)
     assert is_valid is True
     
     # 誤ったパスワードで検証
-    is_valid = await verify_password("パスワード123", hashed_password)
+    is_valid = verify_password("パスワード123", hashed_password)
     assert is_valid is False
 
 

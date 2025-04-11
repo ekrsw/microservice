@@ -31,8 +31,8 @@ async def test_create_user(db_session, unique_username):
 
     # パスワードの検証
     assert result.hashed_password != "password123"
-    assert await verify_password("password123", result.hashed_password)
-    assert not await verify_password("wrongpassword", result.hashed_password)
+    assert verify_password("password123", result.hashed_password)
+    assert not verify_password("wrongpassword", result.hashed_password)
 
     # ユーザーの削除
     await db_session.delete(result)
@@ -182,13 +182,13 @@ async def test_update_password(db_session):
     updated_user = await user.update_password(db_session, db_user, new_password)
     
     # パスワードが更新されていることを確認
-    assert await verify_password("newpassword", updated_user.hashed_password)
-    assert not await verify_password("oldpassword", updated_user.hashed_password)
+    assert verify_password("newpassword", updated_user.hashed_password)
+    assert not verify_password("oldpassword", updated_user.hashed_password)
 
     # DBから再取得して確認
     db_updated = await user.get_by_id(db_session, db_user.id)
-    assert await verify_password("newpassword", db_updated.hashed_password)
-    assert not await verify_password("oldpassword", db_updated.hashed_password)
+    assert verify_password("newpassword", db_updated.hashed_password)
+    assert not verify_password("oldpassword", db_updated.hashed_password)
 
     # ユーザーの削除
     await db_session.delete(db_updated)
@@ -218,19 +218,19 @@ async def test_update_method_separate_from_password(db_session, unique_username)
     assert updated_user.username == f"updated_{username}"
     
     # パスワードは変更されていないことを確認
-    assert await verify_password("original_pass", updated_user.hashed_password)
+    assert verify_password("original_pass", updated_user.hashed_password)
 
     # パスワードを別途更新
     updated_user = await user.update_password(db_session, updated_user, "new_password")
     
     # パスワードが更新されていることを確認
-    assert await verify_password("new_password", updated_user.hashed_password)
-    assert not await verify_password("original_pass", updated_user.hashed_password)
+    assert verify_password("new_password", updated_user.hashed_password)
+    assert not verify_password("original_pass", updated_user.hashed_password)
 
     # DBから再取得して確認
     db_updated = await user.get_by_id(db_session, db_user.id)
     assert db_updated.username == f"updated_{username}"
-    assert await verify_password("new_password", db_updated.hashed_password)
+    assert verify_password("new_password", db_updated.hashed_password)
 
     # ユーザーの削除
     await db_session.delete(db_updated)

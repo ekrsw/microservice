@@ -26,10 +26,10 @@ async def test_verify_password_with_wrong_password():
     wrong_password = "wrongpassword123"
     
     # 正しいパスワードでハッシュを生成
-    hashed_password = await get_password_hash(correct_password)
+    hashed_password = get_password_hash(correct_password)
     
     # 誤ったパスワードで検証
-    is_valid = await verify_password(wrong_password, hashed_password)
+    is_valid = verify_password(wrong_password, hashed_password)
     
     # 検証が失敗することを確認
     assert is_valid is False
@@ -43,7 +43,7 @@ async def test_verify_password_with_invalid_hash():
     
     # 無効なハッシュで検証
     with pytest.raises(ValueError) as exc_info:
-        await verify_password(password, invalid_hash)
+        verify_password(password, invalid_hash)
     
     # エラーメッセージを確認
     assert "hash could not be identified" in str(exc_info.value).lower()

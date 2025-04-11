@@ -11,7 +11,7 @@ from app.core.security import get_password_hash
 class CRUDUser:
     async def create(self, db: AsyncSession, obj_in: UserCreate | AdminUserCreate) -> User:
         password = obj_in.password
-        hashed_password = await get_password_hash(password)
+        hashed_password = get_password_hash(password)
         
         # UserCreateの場合はis_adminがないのでFalseをデフォルト値として使用
         is_admin = getattr(obj_in, 'is_admin', False)
@@ -66,7 +66,7 @@ class CRUDUser:
             User: 更新されたユーザーオブジェクト
         """
         try:
-            db_obj.hashed_password = await get_password_hash(new_password)
+            db_obj.hashed_password = get_password_hash(new_password)
             await db.commit()
             await db.refresh(db_obj)
             return db_obj
