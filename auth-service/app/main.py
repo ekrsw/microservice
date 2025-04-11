@@ -150,15 +150,26 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     # リクエストロガーの取得
     logger = get_request_logger(request)
     
+    # エラー情報の処理（ValueErrorオブジェクトを文字列に変換）
+    errors = []
+    for error in exc.errors():
+        # エラーのコピーを作成
+        processed_error = error.copy()
+        # ctx内のValueErrorオブジェクトを文字列に変換
+        if 'ctx' in processed_error and 'error' in processed_error['ctx']:
+            if isinstance(processed_error['ctx']['error'], ValueError):
+                processed_error['ctx']['error'] = str(processed_error['ctx']['error'])
+        errors.append(processed_error)
+    
     # バリデーションエラーのロギング
     logger.warning(
         f"Validation error: {request.method} {request.url.path} "
-        f"Errors: {exc.errors()}"
+        f"Errors: {errors}"
     )
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "body": exc.body},
+        content={"detail": errors, "body": exc.body},
     )
 
 # APIルーターの登録
