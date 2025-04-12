@@ -18,9 +18,9 @@ services:
       redis:
         condition: service_started
     ports:
-      - "${AUTH_SERVICE_INTERNAL_PORT}:${API_PORT}"
+      - "${AUTH_SERVICE_EXTERNAL_PORT}:${AUTH_SERVICE_INTERNAL_PORT}"
     expose:
-      - "${API_PORT}"
+      - "${AUTH_SERVICE_INTERNAL_PORT}"
     volumes:
       - ./app:/workdir/app
       - ./migrations:/workdir/migrations
