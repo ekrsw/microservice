@@ -247,6 +247,12 @@ async def get_all_users(
     users = await user.get_all_users(db)
     return users
 
+@router.get("/user/me", response_model=UserResponse)
+async def get_user_me(current_user: User = Depends(get_current_user)) -> Any:
+    """
+    自分自身のユーザー情報を取得するエンドポイント
+    """
+    return current_user
 
 @router.get("/user/{user_id}", response_model=UserResponse)
 async def get_user_by_id(

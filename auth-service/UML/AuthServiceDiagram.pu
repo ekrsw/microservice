@@ -1,43 +1,350 @@
-@startuml 認証フロー全体のシーケンス図
+@startuml
+title Auth Service 全体シーケンス図
 
 actor Client
-participant AuthService as "認証サービス"
-database DB as "PostgreSQL"
-participant Redis
+participant "FastAPI (main.py)" as FastAPI
+participant "Auth Router (auth.py)" as AuthRouter
+participant "API Dependencies (deps.py)" as APIDeps
+participant "User CRUD (user.py)" as UserCRUD
+participant "Security (security.py)" as Security
+database "Database (PostgreSQL)" as DB
+participant "Redis" as Redis
 
-== ユーザー登録 ==
-Client -> AuthService: 1. ユーザー登録 (POST /api/v1/auth/register)
-AuthService -> DB: ユーザー情報を保存
-DB --> AuthService: 成功
-AuthService --> Client: ユーザー情報
+note over Client, Redis
+  1. ユーザー登録 (Register)
+end note
 
-== ログイン ==
-Client -> AuthService: 2. ログイン (POST /api/v1/auth/login)
-AuthService -> DB: ユーザー認証
-DB --> AuthService: ユーザー情報
-AuthService -> Redis: リフレッシュトークンを保存
-Redis --> AuthService: 成功
-AuthService --> Client: アクセストークン + リフレッシュトークン
+Client -> FastAPI: POST /api/v1/auth/register (username, password)
+FastAPI -> AuthRouter: register_user(username, password)
+AuthRouter -> UserCRUD: get_by_username(username)
+UserCRUD -> DB: SELECT * FROM users WHERE username=?
 
-== APIアクセス ==
-alt アクセストークンが有効な場合
-    note over Client, AuthService
-    アクセストークンを使用してAPI呼び出し
-    end note
-else アクセストークンの有効期限切れ  
-    Client -> AuthService: 3. トークンリフレッシュ (POST /api/v1/auth/refresh)
-    AuthService -> Redis: リフレッシュトークンを検証
-    Redis --> AuthService: 有効
-    AuthService -> Redis: 古いリフレッシュトークンを無効化
-    Redis --> AuthService: 成功
-    AuthService -> Redis: 新しいリフレッシュトークンを保存
-    Redis --> AuthService: 成功
-    AuthService --> Client: 新しいアクセストークン + リフレッシュトークン
+alt ユーザーが既に存在する場合
+    DB --> UserCRUD: ユーザー情報 (存在する場合)
+    UserCRUD --> AuthRouter: existing_user
+    AuthRouter -> FastAPI: HTTP 400 Bad Request
+else ユーザーが存在しない場合
+    DB --> UserCRUD: None
+    UserCRUD --> AuthRouter: None
+    AuthRouter -> Security: get_password_hash(password)
+    Security --> AuthRouter: hashed_password
+    AuthRouter -> UserCRUD: create_user(username, hashed_password)
+    UserCRUD -> DB: INSERT INTO users
+    DB --> UserCRUD: 新規ユーザー情報
+    UserCRUD --> AuthRouter: new_user
+    AuthRouter --> FastAPI: HTTP 200 OK (ユーザー情報)
 end
-== ログアウト ==
-Client -> AuthService: 4. ログアウト (POST /api/v1/auth/logout)
-AuthService -> Redis: リフレッシュトークンを無効化
-Redis --> AuthService: 成功
-AuthService --> Client: ログアウト成功
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  2. ログイン (Login)
+end note
+
+Client -> FastAPI: POST /api/v1/auth/login (login_form_data)
+FastAPI -> AuthRouter: login(login_form_data)
+AuthRouter -> UserCRUD: get_by_username(username)
+UserCRUD -> DB: SELECT * FROM users WHERE username=?
+
+alt ユーザーが存在しない (db_user is None)
+    DB --> UserCRUD: None
+    UserCRUD --> AuthRouter: None
+    AuthRouter -> FastAPI: HTTP 401 Unauthorized
+else ユーザーが存在する
+    DB --> UserCRUD: ユーザー情報
+    UserCRUD --> AuthRouter: db_user
+    AuthRouter -> Security: verify_password(plain_password, db_user.password)
+    Security --> AuthRouter: True or False
+
+    alt パスワードが不正 (False)
+        AuthRouter -> FastAPI: HTTP 401 Unauthorized
+    else パスワードが正しい (True)
+        AuthRouter -> Security: create_access_token(...)
+        Security --> AuthRouter: access_token
+        AuthRouter -> Security: create_refresh_token(...)
+        Security --> AuthRouter: refresh_token
+        AuthRouter -> Redis: SET refresh_token (option)
+        AuthRouter -> FastAPI: HTTP 200 OK (access_token, refresh_token)
+    end
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  3. トークンリフレッシュ (Refresh Token)
+end note
+
+Client -> FastAPI: POST /api/v1/auth/refresh (refresh_token_data)
+FastAPI -> AuthRouter: refresh_token(token_data)
+AuthRouter -> APIDeps: validate_refresh_token(token_data.refresh_token)
+APIDeps -> Security: verify_refresh_token(refresh_token)
+Security -> Redis: GET refresh_token:{token}
+Redis --> Security: user_id or nil
+
+alt 無効なリフレッシュトークン (user_id == None)
+    Security --> APIDeps: None
+    APIDeps --> AuthRouter: HTTPException(401)
+    AuthRouter --> FastAPI: HTTP 401 Unauthorized
+else 有効なリフレッシュトークン
+    Security --> APIDeps: user_id
+    APIDeps --> AuthRouter: user_id
+    
+    AuthRouter -> UserCRUD: get_by_id(db, id=UUID(user_id))
+    UserCRUD -> DB: SELECT * FROM users WHERE id=?
+    DB --> UserCRUD: user data
+    UserCRUD --> AuthRouter: db_user
+
+    alt ユーザーが存在しない (db_user == None)
+        UserCRUD --> AuthRouter: None
+        AuthRouter --> FastAPI: HTTP 401 Unauthorized
+    else ユーザーが存在する
+        AuthRouter -> Security: revoke_refresh_token(token_data.refresh_token)
+        Security -> Redis: DELETE refresh_token:{token}
+        Redis --> Security: result
+        Security --> AuthRouter: result
+
+        AuthRouter -> Security: create_access_token(data={"sub": str(db_user.id)})
+        Security --> AuthRouter: new_access_token
+
+        AuthRouter -> Security: create_refresh_token(user_id=str(db_user.id))
+        Security -> Redis: SET refresh_token:{new_token} user_id (with expiry)
+        Redis --> Security: OK
+        Security --> AuthRouter: new_refresh_token
+
+        AuthRouter --> FastAPI: HTTP 200 OK (new_access_token, new_refresh_token)
+    end
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  4. ログアウト (Logout)
+end note
+
+Client -> FastAPI: POST /api/v1/auth/logout (token_data)
+FastAPI -> AuthRouter: logout(token_data)
+AuthRouter -> Security: revoke_refresh_token(refresh_token)
+Security -> Redis: DEL refresh_token(token)
+
+alt トークンが失効済みの場合 (False)
+    Redis --> Security: 0
+    Security --> AuthRouter: False
+    AuthRouter -> FastAPI: HTTP 400 Bad Request
+else トークンが有効な場合 (True)
+    Redis --> Security: 1
+    Security --> AuthRouter: True
+    AuthRouter -> FastAPI: HTTP 200 OK
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  5. ユーザー情報取得 (Get User)
+end note
+
+Client -> FastAPI: GET /api/v1/auth/user/{user_id} (with token)
+FastAPI -> APIDeps: get_current_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+APIDeps --> FastAPI: current_user
+
+FastAPI -> AuthRouter: get_user_by_id(user_id, current_user)
+AuthRouter -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: target_user
+UserCRUD --> AuthRouter: target_user
+
+alt ユーザーが存在しない
+    AuthRouter -> FastAPI: HTTP 404 Not Found
+else ユーザーが存在する
+    alt 自分以外のユーザー情報かつ管理者でない
+        AuthRouter -> FastAPI: HTTP 403 Forbidden
+    else 自分自身または管理者
+        AuthRouter -> FastAPI: HTTP 200 OK (user_data)
+    end
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  6. 全ユーザー取得 (Get All Users)
+end note
+
+Client -> FastAPI: GET /api/v1/auth/users (with token)
+FastAPI -> APIDeps: get_current_admin_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+
+alt 管理者でない
+    APIDeps -> FastAPI: HTTP 403 Forbidden
+else 管理者である
+    APIDeps --> FastAPI: current_user
+    FastAPI -> AuthRouter: get_all_users(current_user)
+    AuthRouter -> UserCRUD: get_all_users()
+    UserCRUD -> DB: SELECT * FROM users
+    DB --> UserCRUD: all users
+    UserCRUD --> AuthRouter: users list
+    AuthRouter -> FastAPI: HTTP 200 OK (users list)
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  7. ユーザー情報更新 (Update User)
+end note
+
+Client -> FastAPI: PUT /api/v1/auth/update/user/{user_id} (with token)
+FastAPI -> APIDeps: get_current_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+APIDeps --> FastAPI: current_user
+
+FastAPI -> AuthRouter: update_user(user_id, user_in, current_user)
+AuthRouter -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: target_user
+UserCRUD --> AuthRouter: target_user
+
+alt ユーザーが存在しない
+    AuthRouter -> FastAPI: HTTP 404 Not Found
+else ユーザーが存在する
+    alt 自分以外のユーザー情報かつ管理者でない
+        AuthRouter -> FastAPI: HTTP 403 Forbidden
+    else 自分自身または管理者
+        alt is_adminフラグ変更かつ管理者でない
+            AuthRouter -> FastAPI: HTTP 403 Forbidden
+        else
+            AuthRouter -> UserCRUD: update(db_user, user_in)
+            UserCRUD -> DB: UPDATE users SET ...
+            DB --> UserCRUD: updated_user
+            UserCRUD --> AuthRouter: updated_user
+            AuthRouter -> FastAPI: HTTP 200 OK (updated_user)
+        end
+    end
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  8. パスワード更新 (Update Password)
+end note
+
+Client -> FastAPI: POST /api/v1/auth/update/password (with token)
+FastAPI -> APIDeps: get_current_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+APIDeps --> FastAPI: current_user
+
+FastAPI -> AuthRouter: update_password(password_update, current_user)
+AuthRouter -> Security: verify_password(current_password, current_user.hashed_password)
+Security --> AuthRouter: True or False
+
+alt パスワードが不正 (False)
+    AuthRouter -> FastAPI: HTTP 401 Unauthorized
+else パスワードが正しい (True)
+    AuthRouter -> UserCRUD: update_password(current_user, new_password)
+    UserCRUD -> Security: get_password_hash(new_password)
+    Security --> UserCRUD: hashed_password
+    UserCRUD -> DB: UPDATE users SET hashed_password=?
+    DB --> UserCRUD: updated_user
+    UserCRUD --> AuthRouter: updated_user
+    AuthRouter -> FastAPI: HTTP 200 OK (updated_user)
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  9. 管理者によるパスワード更新 (Admin Update Password)
+end note
+
+Client -> FastAPI: POST /api/v1/auth/admin/update/password (with token)
+FastAPI -> APIDeps: get_current_admin_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+
+alt 管理者でない
+    APIDeps -> FastAPI: HTTP 403 Forbidden
+else 管理者である
+    APIDeps --> FastAPI: current_user
+    FastAPI -> AuthRouter: admin_update_password(password_update, current_user)
+    AuthRouter -> UserCRUD: get_by_id(password_update.user_id)
+    UserCRUD -> DB: SELECT * FROM users WHERE id=?
+    DB --> UserCRUD: target_user
+    UserCRUD --> AuthRouter: target_user
+    
+    alt ユーザーが存在しない
+        AuthRouter -> FastAPI: HTTP 404 Not Found
+    else ユーザーが存在する
+        AuthRouter -> UserCRUD: update_password(target_user, new_password)
+        UserCRUD -> Security: get_password_hash(new_password)
+        Security --> UserCRUD: hashed_password
+        UserCRUD -> DB: UPDATE users SET hashed_password=?
+        DB --> UserCRUD: updated_user
+        UserCRUD --> AuthRouter: updated_user
+        AuthRouter -> FastAPI: HTTP 200 OK (updated_user)
+    end
+end
+
+FastAPI --> Client: Response
+
+note over Client, Redis
+  10. ユーザー削除 (Delete User)
+end note
+
+Client -> FastAPI: DELETE /api/v1/auth/delete/user/{user_id} (with token)
+FastAPI -> APIDeps: get_current_admin_user(token)
+APIDeps -> Security: verify_token_with_fallback(token)
+Security --> APIDeps: user_id or error
+APIDeps -> UserCRUD: get_by_id(user_id)
+UserCRUD -> DB: SELECT * FROM users WHERE id=?
+DB --> UserCRUD: user data
+UserCRUD --> APIDeps: current_user
+
+alt 管理者でない
+    APIDeps -> FastAPI: HTTP 403 Forbidden
+else 管理者である
+    APIDeps --> FastAPI: current_user
+    FastAPI -> AuthRouter: delete_user(user_id, current_user)
+    AuthRouter -> UserCRUD: get_by_id(user_id)
+    UserCRUD -> DB: SELECT * FROM users WHERE id=?
+    DB --> UserCRUD: target_user
+    UserCRUD --> AuthRouter: target_user
+    
+    alt ユーザーが存在しない
+        AuthRouter -> FastAPI: HTTP 404 Not Found
+    else ユーザーが存在する
+        alt 自分自身を削除しようとしている
+            AuthRouter -> FastAPI: HTTP 400 Bad Request
+        else
+            AuthRouter -> UserCRUD: delete(target_user)
+            UserCRUD -> DB: DELETE FROM users WHERE id=?
+            DB --> UserCRUD: result
+            UserCRUD --> AuthRouter: result
+            AuthRouter -> FastAPI: HTTP 204 No Content
+        end
+    end
+end
+
+FastAPI --> Client: Response
 
 @enduml
