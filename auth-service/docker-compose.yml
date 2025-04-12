@@ -29,7 +29,7 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - auth_network
-      - microservice-network
+      - microservice_network
     deploy:
       resources:
         limits:
@@ -68,6 +68,7 @@ services:
     container_name: auth-test-db
     restart: "no"
     env_file:
+      - ../.env
       - ./.env
     environment:
       POSTGRES_USER: ${TEST_POSTGRES_USER}
@@ -91,6 +92,7 @@ services:
     container_name: auth-redis
     restart: always
     env_file:
+      - ../.env
       - ./.env
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -105,7 +107,8 @@ volumes:
 
 networks:
   auth_network:
+    name: ${AUTH_NETWORK}
     driver: bridge
-  microservice-network:
-    name: microservice-network
+  microservice_network:
+    name: "${COMMON_NETWORK}"
     driver: bridge
