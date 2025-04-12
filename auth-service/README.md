@@ -284,7 +284,34 @@ GET /auth/users
 
 ---
 
-#### ユーザー情報取得
+#### 自分自身のユーザー情報取得
+
+```
+GET /auth/user/me
+```
+
+**説明**: 認証されたユーザー自身の情報を取得します。
+
+**認証要件**: 有効なアクセストークン
+
+**レスポンス** (200 OK):
+
+```json
+{
+  "id": "uuid",
+  "username": "string",
+  "is_admin": boolean,
+  "is_active": boolean
+}
+```
+
+**エラーレスポンス**:
+
+- 401 Unauthorized: 認証情報が無効
+
+---
+
+#### 指定ユーザーの情報取得
 
 ```
 GET /auth/user/{user_id}
