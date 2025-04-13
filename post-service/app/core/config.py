@@ -41,8 +41,8 @@ class Settings(BaseSettings):
     PUBLIC_KEY_PATH: str = "keys/public.pem"
     
     # APIのホストとポート
-    API_HOST: str = "0.0.0.0"
-    POST_SERVICE_INTERNAL_PORT: int = 8081
+    #API_HOST: str = "0.0.0.0"
+    # POST_SERVICE_INTERNAL_PORT: int = 8081
     
     @property
     def DATABASE_URL(self) -> str:

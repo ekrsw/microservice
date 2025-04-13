@@ -29,7 +29,6 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - auth_network
-      - microservice_network
     deploy:
       resources:
         limits:
@@ -108,7 +107,4 @@ volumes:
 networks:
   auth_network:
     name: ${AUTH_NETWORK}
-    driver: bridge
-  microservice_network:
-    name: "${COMMON_NETWORK}"
     driver: bridge

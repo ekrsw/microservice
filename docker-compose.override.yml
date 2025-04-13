@@ -2,6 +2,9 @@ services:
   auth-service:
     networks:
       - microservice_network
+  post-service:
+    networks:
+      - microservice_network
 
 networks:
   microservice_network:
