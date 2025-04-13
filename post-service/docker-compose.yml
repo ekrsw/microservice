@@ -15,9 +15,9 @@ services:
       post_test_db:
         condition: service_healthy
     ports:
-      - "${POST_SERVICE_PORT}:${API_PORT}"
+      - "${POST_SERVICE_PORT}:${POST_SERVICE_INTERNAL_PORT}"
     expose:
-      - "${API_PORT}"
+      - "${POST_SERVICE_INTERNAL_PORT}"
     volumes:
       - ./app:/workdir/app
       - ./migrations:/workdir/migrations
