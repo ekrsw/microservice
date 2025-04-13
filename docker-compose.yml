@@ -5,6 +5,6 @@ include:
  
 # 共通ネットワークの定義
 networks:
-  microservices_network:
+  microservice_network:
     name: "${COMMON_NETWORK}"
     driver: bridge

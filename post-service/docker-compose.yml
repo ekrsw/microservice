@@ -26,7 +26,7 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - post_network
-      - microservice-network
+      - microservice_network
     deploy:
       resources:
         limits:
@@ -85,6 +85,6 @@ volumes:
 networks:
   post_network:
     driver: bridge
-  microservice-network:
-    name: microservice-network
+  microservice_network:
+    name: "${COMMON_NETWORK}"
     driver: bridge
