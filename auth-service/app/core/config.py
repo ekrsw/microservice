@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     TEST_POSTGRES_DB: str
     
     # Redis設定
-    REDIS_HOST: str = "redis"
+    REDIS_HOST: str = "auth_redis"
     REDIS_PORT: int = 6379
     
     # トークン設定

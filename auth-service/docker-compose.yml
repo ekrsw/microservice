@@ -11,11 +11,11 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
     depends_on:
-      db:
+      auth_db:
         condition: service_healthy
-      test_db:
+      auth_test_db:
         condition: service_healthy
-      redis:
+      auth_redis:
         condition: service_started
     ports:
       - "${AUTH_SERVICE_EXTERNAL_PORT}:${AUTH_SERVICE_INTERNAL_PORT}"
@@ -29,7 +29,7 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - auth_network
-      - microservice_network
+      # - microservice_network
     deploy:
       resources:
         limits:
@@ -38,7 +38,7 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
-  db:
+  auth_db:
     image: postgres:17.4-alpine
     container_name: auth-db
     restart: always
@@ -63,7 +63,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - auth_network
-  test_db:
+  auth_test_db:
     image: postgres:17.4-alpine
     container_name: auth-test-db
     restart: "no"
@@ -87,7 +87,7 @@ services:
     networks:
       - auth_network
       
-  redis:
+  auth_redis:
     image: redis:7.4.2-alpine 
     container_name: auth-redis
     restart: always
