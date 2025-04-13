@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     
     # APIのホストとポート
     API_HOST: str = "0.0.0.0"
-    API_PORT: int = 8001
+    POST_SERVICE_INTERNAL_PORT: int = 8081
     
     @property
     def DATABASE_URL(self) -> str:
