@@ -40,10 +40,6 @@ class Settings(BaseSettings):
     # 公開鍵のパス
     PUBLIC_KEY_PATH: str = "keys/public.pem"
     
-    # APIのホストとポート
-    #API_HOST: str = "0.0.0.0"
-    # POST_SERVICE_INTERNAL_PORT: int = 8081
-    
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
