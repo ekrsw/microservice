@@ -29,7 +29,7 @@ services:
       - ./pytest.ini:/workdir/pytest.ini
     networks:
       - auth_network
-      # - microservice_network
+      - microservice_network
     deploy:
       resources:
         limits:
