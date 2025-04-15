@@ -5,7 +5,7 @@ from uuid import UUID
 
 # 共通のプロパティを持つUserBaseクラス
 class UserBase(BaseModel):
-    username: Optional[str] = None
+    fullname: Optional[str] = None
     is_admin: Optional[bool] = False
 
 

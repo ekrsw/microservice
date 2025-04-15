@@ -1,6 +1,6 @@
 services:
   auth-service:
-    container_name: auth-service
+    container_name: new_auth-service
     build:
       context: .
       dockerfile: docker/Dockerfile
