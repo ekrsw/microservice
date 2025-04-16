@@ -6,7 +6,7 @@ services:
       dockerfile: docker/Dockerfile
     restart: always
     env_file:
-      - ../.env
+      # - ../.env
       - ./.env
     environment:
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
@@ -40,7 +40,7 @@ services:
     container_name: user-db
     restart: always
     env_file:
-      - ../.env
+      # - ../.env
       - ./.env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -65,7 +65,7 @@ services:
     container_name: user-test-db
     restart: "no"
     env_file:
-      - ../.env
+      # - ../.env
       - ./.env
     environment:
       POSTGRES_USER: ${TEST_POSTGRES_USER}
@@ -83,6 +83,7 @@ services:
       - "${TEST_POSTGRES_PORT}:5432"
     networks:
       - user_network
+      - microservice_network
 
 volumes:
   postgres_data:
@@ -90,4 +91,7 @@ volumes:
 networks:
   user_network:
     name: ${USER_NETWORK}
+    driver: bridge
+  microservice_network:
+    name: microservice_network
     driver: bridge

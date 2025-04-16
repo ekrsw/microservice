@@ -32,31 +32,6 @@ async def lifespan(app: FastAPI):
         await db.init()
         app_logger.info("Database initialized successfully")
         
-        # 初期管理者ユーザーの作成
-        admin_username = settings.INITIAL_ADMIN_USERNAME
-        admin_password = settings.INITIAL_ADMIN_PASSWORD
-        
-        # 既存の管理者ユーザーを確認
-        async with AsyncSessionLocal() as session:
-            try:
-                existing_admin = await user.get_by_username(session, admin_username)
-                if not existing_admin:
-                    try:
-                        await user.create(session, AdminUserCreate(
-                            username=admin_username,
-                            password=admin_password,
-                            is_admin=True
-                        ))
-                        await session.commit()
-                        app_logger.info(f"Initial admin user '{admin_username}' created successfully")
-                    except IntegrityError:
-                        # 他のプロセスが既にユーザーを作成している場合
-                        app_logger.info(f"Admin user '{admin_username}' already created by another process")
-                else:
-                    app_logger.info(f"Admin user '{admin_username}' already exists")
-            except Exception as e:
-                app_logger.error(f"Error creating admin user: {e}")
-                # ユーザー作成のエラーはアプリ起動を妨げるべきではない
     except Exception as e:
         app_logger.error(f"Error initializing database: {e}")
         raise
@@ -69,8 +44,8 @@ async def lifespan(app: FastAPI):
 
 # FastAPIアプリケーションの作成
 app = FastAPI(
-    title="認証サービス",
-    description="ユーザー認証とトークン管理を提供するマイクロサービス",
+    title="ユーザー管理サービス",
+    description="ユーザープロファイルの管理を行うマイクロサービス",
     version="1.0.0",
     lifespan=lifespan
 )
